@@ -2,67 +2,88 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import { useLang } from "@/components/LangContext";
 
 type Scenario = {
-  labelB: string;
+  labelB: (t: (th: string, en: string) => string) => string;
   dirB: number;
   rel: (a: number, b: number) => number | null;
-  formula: (a: number, b: number, r: number) => string;
-  mirrorLabel: (r: number) => string;
-  explain: (a: number, b: number, r: number) => string;
-  relLabel: string;
+  formula: (t: (th: string, en: string) => string, a: number, b: number, r: number) => string;
+  mirrorLabel: (t: (th: string, en: string) => string, r: number) => string;
+  explain: (t: (th: string, en: string) => string, a: number, b: number, r: number) => string;
+  relLabel: (t: (th: string, en: string) => string) => string;
 };
 
 const scenarios: Scenario[] = [
   {
-    labelB: "รถ B (ทิศเดียวกัน) km/h",
+    labelB: (t) => t("รถ B (ทิศเดียวกัน) km/h", "Car B (Same direction) km/h"),
     dirB: 1,
     rel: (a, b) => b - a,
-    formula: (a, b, r) => {
+    formula: (t, a, b, r) => {
       const abs = Math.abs(r);
-      if (r > 0) return `v_rel = ${b} − ${a} = +${abs} km/h (B นำหน้าและกำลังห่างออก)`;
-      if (r < 0) return `v_rel = ${b} − ${a} = −${abs} km/h (B อยู่ข้างหลังและกำลังห่างออก)`;
-      return `v_rel = ${b} − ${a} = 0 km/h (วิ่งเคียงกัน ไม่เคลื่อนที่ในกระจก)`;
+      if (r > 0) return `v_rel = ${b} − ${a} = +${abs} km/h ${t("(B นำหน้าและกำลังห่างออก)", "(B ahead and moving away)")}`;
+      if (r < 0) return `v_rel = ${b} − ${a} = −${abs} km/h ${t("(B อยู่ข้างหลังและกำลังห่างออก)", "(B behind and falling back)")}`;
+      return `v_rel = ${b} − ${a} = 0 km/h ${t("(วิ่งเคียงกัน ไม่เคลื่อนที่ในกระจก)", "(side by side, stationary in mirror)")}`;
     },
-    mirrorLabel: (r) => {
+    mirrorLabel: (t, r) => {
       const abs = Math.abs(r);
-      if (r > 0) return `B เคลื่อนห่างออก ${abs} km/h`;
-      if (r < 0) return `B เคลื่อนเข้ามา ${abs} km/h`;
-      return `B นิ่งอยู่กับที่`;
+      if (r > 0) return t(`B เคลื่อนห่างออก ${abs} km/h`, `B moving away ${abs} km/h`);
+      if (r < 0) return t(`B เคลื่อนเข้ามา ${abs} km/h`, `B approaching ${abs} km/h`);
+      return t("B นิ่งอยู่กับที่", "B stationary");
     },
-    explain: (a, b, r) => {
+    explain: (t, a, b, r) => {
       const abs = Math.abs(r);
       if (r === 0)
-        return `ในกระจก รถ B จะดูนิ่งสนิท ไม่เคลื่อนที่เลย เพราะทั้งคู่วิ่งเร็วเท่ากัน นี่คือหัวใจของการเคลื่อนที่สัมพัทธ์`;
+        return t(
+          "ในกระจก รถ B จะดูนิ่งสนิท ไม่เคลื่อนที่เลย เพราะทั้งคู่วิ่งเร็วเท่ากัน นี่คือหัวใจของการเคลื่อนที่สัมพัทธ์",
+          "In the mirror, car B appears completely stationary because both cars are moving at the same speed. This is the essence of relative motion."
+        );
       if (r > 0)
-        return `ในกระจกข้าง คุณจะเห็นรถ B ค่อยๆ เคลื่อนออกไปข้างหน้าด้วยความเร็วแค่ ${abs} km/h แม้รถทั้งคู่วิ่งเร็วมากบนถนนจริงๆ`;
-      return `ในกระจกข้าง รถ B ดูเหมือนเข้ามาใกล้ด้วยความเร็ว ${abs} km/h เพราะรถ A วิ่งเร็วกว่า B`;
+        return t(
+          `ในกระจกข้าง คุณจะเห็นรถ B ค่อยๆ เคลื่อนออกไปข้างหน้าด้วยความเร็วแค่ ${abs} km/h แม้รถทั้งคู่วิ่งเร็วมากบนถนนจริงๆ`,
+          `In the side mirror, you see car B gradually moving ahead at only ${abs} km/h, even though both cars are traveling fast on the actual road.`
+        );
+      return t(
+        `ในกระจกข้าง รถ B ดูเหมือนเข้ามาใกล้ด้วยความเร็ว ${abs} km/h เพราะรถ A วิ่งเร็วกว่า B`,
+        `In the side mirror, car B appears to approach at ${abs} km/h because car A is faster than B.`
+      );
     },
-    relLabel: "B ในกระจก A",
+    relLabel: (t) => t("B ในกระจก A", "B in A's mirror"),
   },
   {
-    labelB: "รถ B (สวนทางกัน) km/h",
+    labelB: (t) => t("รถ B (สวนทางกัน) km/h", "Car B (Opposite dir.) km/h"),
     dirB: -1,
     rel: (a, b) => a + b,
-    formula: (a, b, r) => `v_rel = ${a} + ${b} = ${r} km/h (เข้าหากัน ชนกัน)`,
-    mirrorLabel: (r) => `B พุ่งเข้ามา ${r} km/h`,
-    explain: (a, b, r) =>
-      `เมื่อรถสวนทาง ในกระจกจะเห็นรถ B พุ่งเข้ามาเร็วมากถึง ${r} km/h ความเร็วสัมพัทธ์คือผลบวกของทั้งสองฝั่ง`,
-    relLabel: "ความเร็วสัมพัทธ์",
+    formula: (t, a, b, r) => `v_rel = ${a} + ${b} = ${r} km/h ${t("(เข้าหากัน ชนกัน)", "(approaching head-on)")}`,
+    mirrorLabel: (t, r) => t(`B พุ่งเข้ามา ${r} km/h`, `B rushing in ${r} km/h`),
+    explain: (t, a, b, r) =>
+      t(
+        `เมื่อรถสวนทาง ในกระจกจะเห็นรถ B พุ่งเข้ามาเร็วมากถึง ${r} km/h ความเร็วสัมพัทธ์คือผลบวกของทั้งสองฝั่ง`,
+        `When cars travel in opposite directions, car B appears to rush in at ${r} km/h in the mirror. Relative speed is the sum of both speeds.`
+      ),
+    relLabel: (t) => t("ความเร็วสัมพัทธ์", "Relative Speed"),
   },
   {
-    labelB: "รถ B (ผู้สังเกตบนพื้น) km/h",
+    labelB: (t) => t("รถ B (ผู้สังเกตบนพื้น) km/h", "Car B (Ground observer) km/h"),
     dirB: 1,
     rel: () => null,
-    formula: (a, b) => `ผู้สังเกตบนพื้น: เห็น A = ${a} km/h, B = ${b} km/h (ความเร็วแท้จริง)`,
-    mirrorLabel: () => `มุมมองบุคคลที่ 3`,
-    explain: (a, b) =>
-      `ผู้ยืนอยู่กับที่เห็นความเร็วจริง: A วิ่ง ${a} km/h และ B วิ่ง ${b} km/h เปรียบเทียบกับมุมมองกระจกที่เห็นเพียงความต่าง`,
-    relLabel: "ไม่ใช่สัมพัทธ์",
+    formula: (t, a, b) =>
+      t(
+        `ผู้สังเกตบนพื้น: เห็น A = ${a} km/h, B = ${b} km/h (ความเร็วแท้จริง)`,
+        `Ground observer: sees A = ${a} km/h, B = ${b} km/h (actual speeds)`
+      ),
+    mirrorLabel: (t) => t("มุมมองบุคคลที่ 3", "3rd person view"),
+    explain: (t, a, b) =>
+      t(
+        `ผู้ยืนอยู่กับที่เห็นความเร็วจริง: A วิ่ง ${a} km/h และ B วิ่ง ${b} km/h เปรียบเทียบกับมุมมองกระจกที่เห็นเพียงความต่าง`,
+        `A stationary observer sees actual speeds: A at ${a} km/h and B at ${b} km/h. Compare this to the mirror view which shows only the difference.`
+      ),
+    relLabel: (t) => t("ไม่ใช่สัมพัทธ์", "Not relative"),
   },
 ];
 
 export default function RelativeMotionPage() {
+  const { t } = useLang();
   const [scenario, setScenario] = useState(0);
   const [speedA, setSpeedA] = useState(60);
   const [speedB, setSpeedB] = useState(80);
@@ -71,7 +92,6 @@ export default function RelativeMotionPage() {
   const relSpeed = sc.rel(speedA, speedB);
   const r = relSpeed ?? 0;
 
-  // Animation state refs
   const birdRef = useRef<HTMLDivElement>(null);
   const animRef = useRef<number>(0);
   const posRef = useRef({ pA: 60, pB: 280, tx1: 480, tx2: 140, rdx: 0, mpB: 50, mtx1: 20, mtx2: 65, mrdx: 0 });
@@ -84,7 +104,6 @@ export default function RelativeMotionPage() {
     resetPositions();
   }, [scenario, resetPositions]);
 
-  // Animation loop
   useEffect(() => {
     const birdSc = 0.016;
     const mSc = 0.012;
@@ -107,7 +126,6 @@ export default function RelativeMotionPage() {
       if (p.tx1 < -15) p.tx1 += W + 20;
       if (p.tx2 < -15) p.tx2 += W + 20;
 
-      // Update bird DOM
       const birdA = document.getElementById("birdA");
       const birdBEl = document.getElementById("birdB");
       const tree1 = document.getElementById("bird-tree1");
@@ -127,7 +145,6 @@ export default function RelativeMotionPage() {
         dashEl.style.backgroundPositionX = Math.round(p.rdx % 90) + "px";
       }
 
-      // Mirror animation
       let relV = 0;
       if (relSpeed !== null) relV = relSpeed;
 
@@ -145,10 +162,10 @@ export default function RelativeMotionPage() {
 
       if (p.mpB > 110) p.mpB = -20;
       if (p.mpB < -20) p.mpB = 110;
-      if (p.mtx1 < -5) p.mtx1 += 88 + 10;
-      if (p.mtx2 < -5) p.mtx2 += 88 + 10;
-      if (p.mtx1 > 88) p.mtx1 -= 88 + 10;
-      if (p.mtx2 > 88) p.mtx2 -= 88 + 10;
+      if (p.mtx1 < -5) p.mtx1 += 98;
+      if (p.mtx2 < -5) p.mtx2 += 98;
+      if (p.mtx1 > 88) p.mtx1 -= 98;
+      if (p.mtx2 > 88) p.mtx2 -= 98;
 
       const mirrorB = document.getElementById("mirrorB");
       const mt1 = document.getElementById("mirrorTree1");
@@ -176,19 +193,27 @@ export default function RelativeMotionPage() {
     return () => cancelAnimationFrame(animRef.current);
   }, [speedA, speedB, scenario, sc.dirB, relSpeed]);
 
+  const tabLabels = [
+    t("ทิศเดียวกัน", "Same Direction"),
+    t("สวนทางกัน", "Opposite Direction"),
+    t("คนยืนบนพื้น", "Ground Observer"),
+  ];
+
   return (
     <div className="p-4 sm:p-8 max-w-4xl mx-auto">
       <div className="flex items-center gap-2 text-sm text-[var(--muted)] mb-6">
-        <Link href="/physics" className="hover:underline">ฟิสิกส์</Link>
+        <Link href="/physics" className="hover:underline">{t("ฟิสิกส์", "Physics")}</Link>
         <span>›</span>
-        <span>การเคลื่อนที่สัมพัทธ์</span>
+        <span>{t("การเคลื่อนที่สัมพัทธ์", "Relative Motion")}</span>
       </div>
 
-      <h1 className="text-2xl font-bold mb-6">🚗 การเคลื่อนที่สัมพัทธ์ — Relative Motion</h1>
+      <h1 className="text-2xl font-bold mb-6">
+        🚗 {t("การเคลื่อนที่สัมพัทธ์", "Relative Motion")}
+      </h1>
 
       {/* Tabs */}
       <div className="flex gap-2 mb-4 flex-wrap">
-        {["ทิศเดียวกัน", "สวนทางกัน", "คนยืนบนพื้น"].map((label, i) => (
+        {tabLabels.map((label, i) => (
           <button
             key={i}
             onClick={() => setScenario(i)}
@@ -208,7 +233,7 @@ export default function RelativeMotionPage() {
         {/* Bird's eye view */}
         <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl overflow-hidden">
           <div className="text-xs font-medium text-[var(--muted)] px-3 pt-2 pb-1">
-            มุมมองจากด้านบน (Bird&apos;s eye)
+            {t("มุมมองจากด้านบน (Bird's eye)", "Bird's Eye View")}
           </div>
           <div
             ref={birdRef}
@@ -216,12 +241,7 @@ export default function RelativeMotionPage() {
             style={{ background: "linear-gradient(to bottom, #bfdbfe 0%, #bfdbfe 50%, #86efac 50%, #86efac 70%, #9ca3af 70%)" }}
           >
             <div className="absolute bottom-0 w-full h-[30%] bg-gray-600" />
-            <div
-              id="bird-road-dashes"
-              className="absolute h-1 w-full"
-              style={{ bottom: "12px" }}
-            />
-            {/* Trees */}
+            <div id="bird-road-dashes" className="absolute h-1 w-full" style={{ bottom: "12px" }} />
             <div id="bird-tree1" className="absolute" style={{ bottom: "30%", left: 480 }}>
               <div className="w-2.5 h-4 bg-green-600 rounded-[50%_50%_40%_40%] absolute bottom-2.5 left-0" />
               <div className="w-1.5 h-2.5 bg-amber-800 rounded-sm absolute bottom-0 left-[2.5px]" />
@@ -230,10 +250,9 @@ export default function RelativeMotionPage() {
               <div className="w-2.5 h-4 bg-green-600 rounded-[50%_50%_40%_40%] absolute bottom-2.5 left-0" />
               <div className="w-1.5 h-2.5 bg-amber-800 rounded-sm absolute bottom-0 left-[2.5px]" />
             </div>
-            {/* Car A */}
             <div id="birdA" className="absolute flex flex-col items-center" style={{ bottom: "30%", left: 60 }}>
               <div className="absolute -top-8 text-[10px] bg-[var(--background)] border border-[var(--card-border)] px-1.5 py-0.5 rounded-lg whitespace-nowrap">
-                คุณ {speedA}
+                {t("คุณ", "You")} {speedA}
               </div>
               <div className="relative w-16 h-[30px] bg-blue-500 rounded-md">
                 <div className="absolute w-9 h-3.5 bg-blue-600 rounded-t-md -top-2.5 left-3.5" />
@@ -241,7 +260,6 @@ export default function RelativeMotionPage() {
                 <div className="absolute w-3 h-3 rounded-full bg-gray-800 border border-gray-400 -bottom-1.5 right-1.5" />
               </div>
             </div>
-            {/* Car B */}
             <div id="birdB" className="absolute flex flex-col items-center" style={{ bottom: "30%", left: 280 }}>
               <div className="absolute -top-8 text-[10px] bg-[var(--background)] border border-[var(--card-border)] px-1.5 py-0.5 rounded-lg whitespace-nowrap">
                 {sc.dirB < 0 ? `← B ${speedB}` : `B ${speedB}`}
@@ -258,16 +276,14 @@ export default function RelativeMotionPage() {
         {/* Mirror view */}
         <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl overflow-hidden">
           <div className="text-xs font-medium text-[var(--muted)] px-3 pt-2 pb-1">
-            มุมมองกระจกข้าง (จากรถ A)
+            {t("มุมมองกระจกข้าง (จากรถ A)", "Side Mirror View (from Car A)")}
           </div>
           <div className="relative w-full h-40 overflow-hidden bg-slate-800 rounded-b-xl">
-            {/* Mirror frame */}
             <div className="absolute top-2 left-1/2 -translate-x-1/2 w-[88%] h-[120px] rounded-[50%/30%] border-[3px] border-slate-400 overflow-hidden bg-slate-900">
               <div className="absolute top-0 w-full h-[45%] bg-gradient-to-b from-[#1e3a5f] to-[#1d4ed8]" />
               <div className="absolute top-[45%] w-full h-[10%] bg-[#4b7c2f]" />
               <div className="absolute bottom-0 w-full h-[45%] bg-gray-700" />
               <div id="mirrorDashes" className="absolute h-[3px] w-full" style={{ bottom: 14 }} />
-              {/* Mirror trees */}
               <div id="mirrorTree1" className="absolute" style={{ bottom: 18, left: "20%" }}>
                 <div className="w-2 h-3.5 bg-[#1a4731] rounded-[50%_50%_40%_40%] absolute bottom-2 left-0" />
                 <div className="w-1 h-2 bg-[#5c3317] rounded-sm absolute bottom-0 left-[2px]" />
@@ -276,7 +292,6 @@ export default function RelativeMotionPage() {
                 <div className="w-2 h-3.5 bg-[#1a4731] rounded-[50%_50%_40%_40%] absolute bottom-2 left-0" />
                 <div className="w-1 h-2 bg-[#5c3317] rounded-sm absolute bottom-0 left-[2px]" />
               </div>
-              {/* Mirror car B */}
               <div
                 id="mirrorB"
                 className="absolute flex flex-col items-center"
@@ -288,13 +303,12 @@ export default function RelativeMotionPage() {
                   <div className="absolute w-2.5 h-2.5 rounded-full bg-gray-900 border border-gray-500 -bottom-1 right-1" />
                 </div>
               </div>
-              {/* Speed badge */}
               <div className="absolute top-1.5 left-1/2 -translate-x-1/2 bg-black/60 text-yellow-400 text-[10px] px-2 py-0.5 rounded-lg whitespace-nowrap z-10">
-                {sc.mirrorLabel(r)}
+                {sc.mirrorLabel(t, r)}
               </div>
             </div>
             <div className="absolute bottom-2.5 left-0 right-0 text-center text-[10px] text-slate-500">
-              กระจกข้างซ้ายจากมุมมองผู้นั่งรถ A
+              {t("กระจกข้างซ้ายจากมุมมองผู้นั่งรถ A", "Left side mirror from car A's perspective")}
             </div>
           </div>
         </div>
@@ -303,27 +317,15 @@ export default function RelativeMotionPage() {
       {/* Sliders */}
       <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--card-border)] p-4 mb-4">
         <div className="flex items-center gap-3 mb-2">
-          <label className="text-xs text-[var(--muted)] w-36 shrink-0">รถ A (คุณ) km/h</label>
-          <input
-            type="range"
-            min={0}
-            max={120}
-            value={speedA}
-            onChange={(e) => setSpeedA(+e.target.value)}
-            className="flex-1"
-          />
+          <label className="text-xs text-[var(--muted)] w-36 shrink-0">
+            {t("รถ A (คุณ) km/h", "Car A (You) km/h")}
+          </label>
+          <input type="range" min={0} max={120} value={speedA} onChange={(e) => setSpeedA(+e.target.value)} className="flex-1" />
           <span className="text-xs font-medium min-w-[50px] text-right">{speedA} km/h</span>
         </div>
         <div className="flex items-center gap-3">
-          <label className="text-xs text-[var(--muted)] w-36 shrink-0">{sc.labelB}</label>
-          <input
-            type="range"
-            min={0}
-            max={120}
-            value={speedB}
-            onChange={(e) => setSpeedB(+e.target.value)}
-            className="flex-1"
-          />
+          <label className="text-xs text-[var(--muted)] w-36 shrink-0">{sc.labelB(t)}</label>
+          <input type="range" min={0} max={120} value={speedB} onChange={(e) => setSpeedB(+e.target.value)} className="flex-1" />
           <span className="text-xs font-medium min-w-[50px] text-right">{speedB} km/h</span>
         </div>
       </div>
@@ -331,19 +333,19 @@ export default function RelativeMotionPage() {
       {/* Metrics */}
       <div className="grid grid-cols-3 gap-3 mb-4">
         <div className="bg-[var(--card-bg)] rounded-xl p-3 text-center">
-          <div className="text-[11px] text-[var(--muted)] mb-1">ความเร็ว A</div>
+          <div className="text-[11px] text-[var(--muted)] mb-1">{t("ความเร็ว A", "Speed A")}</div>
           <div className="text-xl font-medium">{speedA}</div>
           <div className="text-[11px] text-[var(--muted)]">km/h</div>
         </div>
         <div className="bg-[var(--card-bg)] rounded-xl p-3 text-center">
           <div className="text-[11px] text-[var(--muted)] mb-1">
-            {scenario === 1 ? "ความเร็ว B (สวน)" : "ความเร็ว B"}
+            {scenario === 1 ? t("ความเร็ว B (สวน)", "Speed B (opp.)") : t("ความเร็ว B", "Speed B")}
           </div>
           <div className="text-xl font-medium">{speedB}</div>
           <div className="text-[11px] text-[var(--muted)]">km/h</div>
         </div>
         <div className="bg-blue-50 dark:bg-blue-950 rounded-xl p-3 text-center">
-          <div className="text-[11px] text-[var(--muted)] mb-1">{sc.relLabel}</div>
+          <div className="text-[11px] text-[var(--muted)] mb-1">{sc.relLabel(t)}</div>
           <div className="text-xl font-medium text-blue-600 dark:text-blue-400">
             {relSpeed !== null ? Math.abs(relSpeed) : "–"}
           </div>
@@ -351,12 +353,11 @@ export default function RelativeMotionPage() {
         </div>
       </div>
 
-      {/* Formula and explanation */}
       <div className="bg-[var(--card-bg)] rounded-lg px-4 py-2.5 font-mono text-xs text-[var(--muted)] mb-3">
-        {sc.formula(speedA, speedB, r)}
+        {sc.formula(t, speedA, speedB, r)}
       </div>
       <p className="text-sm text-[var(--muted)] leading-relaxed">
-        {sc.explain(speedA, speedB, r)}
+        {sc.explain(t, speedA, speedB, r)}
       </p>
     </div>
   );
