@@ -1,48 +1,36 @@
-# Teaching Tool
-
-An interactive tool designed to help students learn **Math** and **Science** through engaging, hands-on experiences.
-
-## Overview
-
-This project is an interactive educational platform built to make learning Math and Science more accessible and enjoyable for students of all levels. By combining visual aids, step-by-step problem solving, and instant feedback, it bridges the gap between traditional teaching methods and modern, technology-driven learning.
-
-## Features
-
-- **Interactive Math Lessons** – Covers topics such as arithmetic, algebra, geometry, and calculus with interactive problem sets and visual explanations.
-- **Interactive Science Lessons** – Explores concepts in physics, chemistry, and biology through simulations and guided experiments.
-- **Step-by-Step Solutions** – Provides detailed walkthroughs for problems, helping students understand the reasoning behind each answer.
-- **Instant Feedback** – Students receive immediate feedback on their answers to reinforce correct understanding and correct misconceptions.
-- **Progress Tracking** – Monitors student performance over time, highlighting areas of strength and topics that need more practice.
-- **Adaptive Difficulty** – Adjusts the complexity of questions based on student performance to keep learners challenged at the right level.
-
-## How It Works
-
-1. **Select a Subject** – Choose between Math or Science.
-2. **Pick a Topic** – Browse available topics within the selected subject.
-3. **Start Learning** – Work through interactive exercises, simulations, and quizzes.
-4. **Review Results** – Get instant feedback and detailed explanations after each exercise.
-5. **Track Progress** – View your progress dashboard to see improvements over time.
-
-## Purpose
-
-This tool was created to support both students and educators by providing:
-- A self-paced learning environment where students can explore concepts at their own speed.
-- A supplementary resource for teachers to assign practice exercises and monitor student understanding.
-- An engaging alternative to textbook-based learning that promotes curiosity and critical thinking.
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
 
-Clone the repository and follow the setup instructions to run the tool locally:
+First, run the development server:
 
 ```bash
-git clone https://github.com/bihu19/teaching_tool.git
-cd teaching_tool
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-## Contributing
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-Contributions are welcome! If you have ideas for new lessons, features, or improvements, feel free to open an issue or submit a pull request.
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-## License
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-This project is open source and available under the [MIT License](LICENSE).
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
