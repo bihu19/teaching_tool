@@ -3,53 +3,46 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-
-const subjects = [
-  {
-    name: "คณิตศาสตร์",
-    nameEn: "Math",
-    icon: "📐",
-    href: "/math",
-    color: "text-blue-500",
-    topics: [],
-  },
-  {
-    name: "ชีววิทยา",
-    nameEn: "Biology",
-    icon: "🧬",
-    href: "/biology",
-    color: "text-green-500",
-    topics: [],
-  },
-  {
-    name: "เคมี",
-    nameEn: "Chemistry",
-    icon: "⚗️",
-    href: "/chemistry",
-    color: "text-purple-500",
-    topics: [],
-  },
-  {
-    name: "ฟิสิกส์",
-    nameEn: "Physics",
-    icon: "⚛️",
-    href: "/physics",
-    color: "text-orange-500",
-    topics: [
-      { name: "การเคลื่อนที่สัมพัทธ์", href: "/physics/relative-motion" },
-      { name: "การเคลื่อนที่ 1 มิติ", href: "/physics/1d-motion" },
-    ],
-  },
-];
+import { useLang } from "./LangContext";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(true);
   const [expanded, setExpanded] = useState<string | null>("/physics");
+  const { lang, toggle, t } = useLang();
+
+  const subjects = [
+    {
+      name: t("คณิตศาสตร์", "Mathematics"),
+      icon: "📐",
+      href: "/math",
+      topics: [],
+    },
+    {
+      name: t("ชีววิทยา", "Biology"),
+      icon: "🧬",
+      href: "/biology",
+      topics: [],
+    },
+    {
+      name: t("เคมี", "Chemistry"),
+      icon: "⚗️",
+      href: "/chemistry",
+      topics: [],
+    },
+    {
+      name: t("ฟิสิกส์", "Physics"),
+      icon: "⚛️",
+      href: "/physics",
+      topics: [
+        { name: t("การเคลื่อนที่สัมพัทธ์", "Relative Motion"), href: "/physics/relative-motion" },
+        { name: t("การเคลื่อนที่ 1 มิติ", "1D Motion"), href: "/physics/1d-motion" },
+      ],
+    },
+  ];
 
   return (
     <>
-      {/* Mobile toggle */}
       <button
         onClick={() => setOpen(!open)}
         className="fixed top-3 left-3 z-50 md:hidden bg-[var(--card-bg)] border border-[var(--card-border)] rounded-lg p-2 text-lg"
@@ -64,7 +57,7 @@ export default function Sidebar() {
       >
         <Link href="/" className="block px-5 pt-5 pb-4 border-b border-[var(--card-border)]">
           <h1 className="text-lg font-bold">📚 Puay Teach</h1>
-          <p className="text-xs text-[var(--muted)]">เครื่องมือการเรียนรู้</p>
+          <p className="text-xs text-[var(--muted)]">{t("เครื่องมือการเรียนรู้", "Learning Tool")}</p>
         </Link>
 
         <nav className="flex-1 overflow-y-auto py-3">
@@ -95,33 +88,41 @@ export default function Sidebar() {
                       pathname === s.href ? "font-medium text-[var(--accent)]" : "text-[var(--muted)]"
                     }`}
                   >
-                    ภาพรวม
+                    {t("ภาพรวม", "Overview")}
                   </Link>
-                  {s.topics.map((t) => (
+                  {s.topics.map((topic) => (
                     <Link
-                      key={t.href}
-                      href={t.href}
+                      key={topic.href}
+                      href={topic.href}
                       className={`block px-4 py-2 text-xs hover:bg-[var(--background)] ${
-                        pathname === t.href ? "font-medium text-[var(--accent)]" : "text-[var(--muted)]"
+                        pathname === topic.href ? "font-medium text-[var(--accent)]" : "text-[var(--muted)]"
                       }`}
                     >
-                      {t.name}
+                      {topic.name}
                     </Link>
                   ))}
                 </div>
               )}
 
               {s.topics.length === 0 && (
-                <Link
-                  href={s.href}
-                  className="sr-only"
-                >
+                <Link href={s.href} className="sr-only">
                   {s.name}
                 </Link>
               )}
             </div>
           ))}
         </nav>
+
+        {/* Language toggle */}
+        <div className="px-5 py-4 border-t border-[var(--card-border)]">
+          <button
+            onClick={toggle}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-[var(--card-border)] text-sm hover:bg-[var(--background)] transition-colors"
+          >
+            <span>{lang === "th" ? "🇬🇧" : "🇹🇭"}</span>
+            <span>{lang === "th" ? "English" : "ภาษาไทย"}</span>
+          </button>
+        </div>
       </aside>
     </>
   );
