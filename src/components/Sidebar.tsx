@@ -22,13 +22,17 @@ export default function Sidebar() {
       name: t("ชีววิทยา", "Biology"),
       icon: "🧬",
       href: "/biology",
-      topics: [],
+      topics: [
+        { name: t("ระบบย่อยอาหาร", "Digestive System"), href: "/biology/digestive-system" },
+      ],
     },
     {
       name: t("เคมี", "Chemistry"),
       icon: "⚗️",
       href: "/chemistry",
-      topics: [],
+      topics: [
+        { name: t("รูปร่างโมเลกุล", "Molecular Shape"), href: "/chemistry/molecular-shape" },
+      ],
     },
     {
       name: t("ฟิสิกส์", "Physics"),
