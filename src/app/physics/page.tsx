@@ -25,6 +25,15 @@ export default function PhysicsPage() {
       href: "/physics/1d-motion",
       icon: "📊",
     },
+    {
+      name: t("โพรเจกไทล์", "Projectile Motion"),
+      description: t(
+        "จำลองการเคลื่อนที่แบบโพรเจกไทล์ ปรับมุม ความเร็ว ความสูง แรงโน้มถ่วง และแรงต้านอากาศ เปรียบเทียบวิถีได้",
+        "Simulate projectile motion with adjustable angle, velocity, height, gravity, and air drag. Compare trajectories."
+      ),
+      href: "/physics/projectile",
+      icon: "🎯",
+    },
   ];
 
   return (

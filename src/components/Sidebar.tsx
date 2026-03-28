@@ -41,6 +41,7 @@ export default function Sidebar() {
       topics: [
         { name: t("การเคลื่อนที่สัมพัทธ์", "Relative Motion"), href: "/physics/relative-motion" },
         { name: t("การเคลื่อนที่ 1 มิติ", "1D Motion"), href: "/physics/1d-motion" },
+        { name: t("โพรเจกไทล์", "Projectile Motion"), href: "/physics/projectile" },
       ],
     },
   ];
