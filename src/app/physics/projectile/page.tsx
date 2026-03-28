@@ -1,88 +1,96 @@
 "use client";
 
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useLang } from "@/components/LangContext";
 
-// ---------- physics helpers ----------
 const DEG = Math.PI / 180;
 
 type Point = { t: number; x: number; y: number; vx: number; vy: number };
 
-function simulateIdeal(
-  h0: number, v0: number, angle: number, g: number
-): Point[] {
+function simulateIdeal(h0: number, v0: number, angle: number, g: number): Point[] {
   const vx0 = v0 * Math.cos(angle * DEG);
   const vy0 = v0 * Math.sin(angle * DEG);
   const pts: Point[] = [];
   const dt = 0.01;
-  for (let t = 0; t < 200; t += dt) {
-    const x = vx0 * t;
-    const y = h0 + vy0 * t - 0.5 * g * t * t;
-    if (y < 0 && t > 0) {
-      // interpolate landing
-      const tPrev = t - dt;
+  for (let ti = 0; ti < 200; ti += dt) {
+    const x = vx0 * ti;
+    const y = h0 + vy0 * ti - 0.5 * g * ti * ti;
+    if (y < 0 && ti > 0) {
+      const tPrev = ti - dt;
       const yPrev = h0 + vy0 * tPrev - 0.5 * g * tPrev * tPrev;
       const tLand = tPrev + dt * (yPrev / (yPrev - y));
-      pts.push({
-        t: tLand,
-        x: vx0 * tLand,
-        y: 0,
-        vx: vx0,
-        vy: vy0 - g * tLand,
-      });
+      pts.push({ t: tLand, x: vx0 * tLand, y: 0, vx: vx0, vy: vy0 - g * tLand });
       break;
     }
-    pts.push({ t, x, y, vx: vx0, vy: vy0 - g * t });
+    pts.push({ t: ti, x, y, vx: vx0, vy: vy0 - g * ti });
   }
   return pts;
 }
 
 function simulateDrag(
-  h0: number, v0: number, angle: number, g: number,
-  mass: number, dragCoeff: number
+  h0: number, v0: number, angle: number, g: number, mass: number, dragCoeff: number
 ): Point[] {
   const dt = 0.005;
   let x = 0, y = h0;
   let vx = v0 * Math.cos(angle * DEG);
   let vy = v0 * Math.sin(angle * DEG);
   const pts: Point[] = [{ t: 0, x, y, vx, vy }];
-  const k = dragCoeff; // F_drag = -k * v  (linear drag for simplicity)
-
   for (let i = 1; i < 60000; i++) {
-    const t = i * dt;
-    const speed = Math.sqrt(vx * vx + vy * vy);
-    const ax = -(k / mass) * vx;
-    const ay = -g - (k / mass) * vy;
-    // semi-implicit Euler
+    const ti = i * dt;
+    const ax = -(dragCoeff / mass) * vx;
+    const ay = -g - (dragCoeff / mass) * vy;
     vx += ax * dt;
     vy += ay * dt;
     x += vx * dt;
     y += vy * dt;
-
     if (y < 0) {
-      // interpolate
       const prev = pts[pts.length - 1];
       const frac = prev.y / (prev.y - y);
       pts.push({
         t: prev.t + dt * frac,
         x: prev.x + (x - prev.x) * frac,
-        y: 0,
-        vx, vy,
+        y: 0, vx, vy,
       });
       break;
     }
-    // subsample for rendering
-    if (i % 4 === 0) pts.push({ t, x, y, vx, vy });
+    if (i % 4 === 0) pts.push({ t: ti, x, y, vx, vy });
   }
   return pts;
 }
 
-// ---------- component ----------
+function getPointAt(pts: Point[], prog: number): Point {
+  if (pts.length === 0) return { t: 0, x: 0, y: 0, vx: 0, vy: 0 };
+  const tTarget = prog * pts[pts.length - 1].t;
+  for (let i = 1; i < pts.length; i++) {
+    if (pts[i].t >= tTarget) {
+      const p = pts[i - 1], n = pts[i];
+      const f = (tTarget - p.t) / (n.t - p.t || 1);
+      return {
+        t: tTarget,
+        x: p.x + (n.x - p.x) * f,
+        y: p.y + (n.y - p.y) * f,
+        vx: p.vx + (n.vx - p.vx) * f,
+        vy: p.vy + (n.vy - p.vy) * f,
+      };
+    }
+  }
+  return pts[pts.length - 1];
+}
+
+function niceStep(range: number, targetTicks: number): number {
+  const rough = range / targetTicks;
+  const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+  const res = rough / mag;
+  if (res <= 1) return mag;
+  if (res <= 2) return 2 * mag;
+  if (res <= 5) return 5 * mag;
+  return 10 * mag;
+}
+
 export default function ProjectilePage() {
   const { t } = useLang();
 
-  // parameters
   const [h0, setH0] = useState(0);
   const [v0, setV0] = useState(25);
   const [angle, setAngle] = useState(45);
@@ -91,53 +99,44 @@ export default function ProjectilePage() {
   const [dragCoeff, setDragCoeff] = useState(0);
   const [showDrag, setShowDrag] = useState(false);
 
-  // animation
   const [playing, setPlaying] = useState(false);
-  const [progress, setProgress] = useState(0); // 0..1
+  const [progress, setProgress] = useState(0);
   const playingRef = useRef(false);
   const progressRef = useRef(0);
   const lastTsRef = useRef<number | null>(null);
   const animRef = useRef(0);
 
-  // canvas
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // compute trajectories
-  const ideal = simulateIdeal(h0, v0, angle, g);
-  const drag = showDrag && dragCoeff > 0
-    ? simulateDrag(h0, v0, angle, g, mass, dragCoeff)
-    : null;
+  // Memoize trajectories so they're stable across renders
+  const ideal = useMemo(() => simulateIdeal(h0, v0, angle, g), [h0, v0, angle, g]);
+  const drag = useMemo(
+    () => (showDrag && dragCoeff > 0 ? simulateDrag(h0, v0, angle, g, mass, dragCoeff) : null),
+    [h0, v0, angle, g, mass, dragCoeff, showDrag]
+  );
 
   const totalTime = ideal[ideal.length - 1]?.t ?? 1;
   const dragTime = drag ? drag[drag.length - 1]?.t ?? 1 : totalTime;
   const maxTime = Math.max(totalTime, dragTime);
 
-  // derived stats (ideal)
+  // Store in refs so the animation loop always reads fresh values
+  const idealRef = useRef(ideal);
+  const dragRef = useRef(drag);
+  const maxTimeRef = useRef(maxTime);
+  const totalTimeRef = useRef(totalTime);
+  const dragTimeRef = useRef(dragTime);
+  useEffect(() => { idealRef.current = ideal; }, [ideal]);
+  useEffect(() => { dragRef.current = drag; }, [drag]);
+  useEffect(() => { maxTimeRef.current = maxTime; }, [maxTime]);
+  useEffect(() => { totalTimeRef.current = totalTime; }, [totalTime]);
+  useEffect(() => { dragTimeRef.current = dragTime; }, [dragTime]);
+
+  // Derived stats (ideal)
   const vy0 = v0 * Math.sin(angle * DEG);
-  const vx0 = v0 * Math.cos(angle * DEG);
   const tPeak = vy0 / g;
   const maxHeight = h0 + vy0 * tPeak - 0.5 * g * tPeak * tPeak;
   const range = ideal[ideal.length - 1]?.x ?? 0;
-
-  // current point by progress
-  function getPointAt(pts: Point[], prog: number): Point {
-    const tTarget = prog * (pts[pts.length - 1]?.t ?? 0);
-    for (let i = 1; i < pts.length; i++) {
-      if (pts[i].t >= tTarget) {
-        const p = pts[i - 1], n = pts[i];
-        const f = (tTarget - p.t) / (n.t - p.t || 1);
-        return {
-          t: tTarget,
-          x: p.x + (n.x - p.x) * f,
-          y: p.y + (n.y - p.y) * f,
-          vx: p.vx + (n.vx - p.vx) * f,
-          vy: p.vy + (n.vy - p.vy) * f,
-        };
-      }
-    }
-    return pts[pts.length - 1] ?? { t: 0, x: 0, y: 0, vx: 0, vy: 0 };
-  }
 
   const curIdeal = getPointAt(ideal, progress);
   const curDrag = drag ? getPointAt(drag, Math.min(progress * totalTime / dragTime, 1)) : null;
@@ -147,15 +146,22 @@ export default function ProjectilePage() {
     const canvas = canvasRef.current;
     const container = containerRef.current;
     if (!canvas || !container) return;
+
+    const curIdeal_ = idealRef.current;
+    const curDrag_ = dragRef.current;
+    const prog = progressRef.current;
+    const tTotal = totalTimeRef.current;
+    const tDrag = dragTimeRef.current;
+
     const W = container.clientWidth;
     const H = 340;
-    canvas.width = W * (window.devicePixelRatio || 1);
-    canvas.height = H * (window.devicePixelRatio || 1);
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
     canvas.style.width = W + "px";
     canvas.style.height = H + "px";
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const dpr = window.devicePixelRatio || 1;
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, W, H);
 
@@ -164,33 +170,31 @@ export default function ProjectilePage() {
     const axisColor = isDark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.25)";
     const textColor = isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)";
 
-    // bounds
-    const allPts = drag ? [...ideal, ...drag] : ideal;
-    let maxX = Math.max(...allPts.map(p => p.x), 1);
-    let maxY = Math.max(...allPts.map(p => p.y), 1);
-    maxX *= 1.1; maxY *= 1.15;
+    const allPts = curDrag_ ? [...curIdeal_, ...curDrag_] : curIdeal_;
+    let mxX = Math.max(...allPts.map(p => p.x), 1);
+    let mxY = Math.max(...allPts.map(p => p.y), 1);
+    mxX *= 1.1; mxY *= 1.15;
 
     const pad = { l: 50, r: 20, t: 20, b: 40 };
     const pw = W - pad.l - pad.r;
     const ph = H - pad.t - pad.b;
-
-    const sx = (x: number) => pad.l + (x / maxX) * pw;
-    const sy = (y: number) => pad.t + ph - (y / maxY) * ph;
+    const sx = (x: number) => pad.l + (x / mxX) * pw;
+    const sy = (y: number) => pad.t + ph - (y / mxY) * ph;
 
     // grid
     ctx.strokeStyle = gridColor;
     ctx.lineWidth = 0.5;
-    const xStep = niceStep(maxX, 6);
-    const yStep = niceStep(maxY, 5);
+    const xStep = niceStep(mxX, 6);
+    const yStep = niceStep(mxY, 5);
     ctx.font = "10px sans-serif";
     ctx.fillStyle = textColor;
-    for (let v = 0; v <= maxX; v += xStep) {
+    for (let v = 0; v <= mxX; v += xStep) {
       const px = sx(v);
       ctx.beginPath(); ctx.moveTo(px, pad.t); ctx.lineTo(px, pad.t + ph); ctx.stroke();
       ctx.textAlign = "center";
       ctx.fillText(v.toFixed(v >= 100 ? 0 : 1), px, pad.t + ph + 14);
     }
-    for (let v = 0; v <= maxY; v += yStep) {
+    for (let v = 0; v <= mxY; v += yStep) {
       const py = sy(v);
       ctx.beginPath(); ctx.moveTo(pad.l, py); ctx.lineTo(pad.l + pw, py); ctx.stroke();
       ctx.textAlign = "right";
@@ -198,127 +202,80 @@ export default function ProjectilePage() {
     }
 
     // axes
-    ctx.strokeStyle = axisColor;
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = axisColor; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, pad.t + ph); ctx.lineTo(pad.l + pw, pad.t + ph); ctx.stroke();
-
-    // axis labels
-    ctx.fillStyle = textColor;
-    ctx.font = "11px sans-serif";
-    ctx.textAlign = "center";
+    ctx.fillStyle = textColor; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
     ctx.fillText("x (m)", pad.l + pw / 2, H - 4);
-    ctx.save();
-    ctx.translate(12, pad.t + ph / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.fillText("y (m)", 0, 0);
-    ctx.restore();
+    ctx.save(); ctx.translate(12, pad.t + ph / 2); ctx.rotate(-Math.PI / 2); ctx.fillText("y (m)", 0, 0); ctx.restore();
 
     // ground
     ctx.fillStyle = isDark ? "rgba(134,239,172,0.08)" : "rgba(134,239,172,0.15)";
     ctx.fillRect(pad.l, sy(0), pw, pad.t + ph - sy(0));
 
-    // initial height indicator
-    if (h0 > 0) {
+    // h0 indicator
+    const currentH0 = curIdeal_.length > 0 ? curIdeal_[0].y : 0;
+    if (currentH0 > 0) {
       ctx.strokeStyle = isDark ? "rgba(251,191,36,0.3)" : "rgba(251,191,36,0.5)";
-      ctx.lineWidth = 1;
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath(); ctx.moveTo(sx(0), sy(h0)); ctx.lineTo(sx(0), sy(0)); ctx.stroke();
+      ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(sx(0), sy(currentH0)); ctx.lineTo(sx(0), sy(0)); ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillStyle = "#fbbf24";
-      ctx.font = "10px sans-serif";
-      ctx.textAlign = "left";
-      ctx.fillText(`h₀=${h0}m`, sx(0) + 4, sy(h0) + 4);
+      ctx.fillStyle = "#fbbf24"; ctx.font = "10px sans-serif"; ctx.textAlign = "left";
+      ctx.fillText(`h₀=${currentH0}m`, sx(0) + 4, sy(currentH0) + 4);
     }
 
-    // draw trajectory — ideal
-    drawPath(ctx, ideal, sx, sy, "#3b82f6", 2.5);
+    // trajectory paths
+    const drawPath = (pts: Point[], color: string, lw: number, dash?: number[]) => {
+      ctx.strokeStyle = color; ctx.lineWidth = lw;
+      if (dash) ctx.setLineDash(dash);
+      ctx.beginPath();
+      pts.forEach((p, i) => { i === 0 ? ctx.moveTo(sx(p.x), sy(p.y)) : ctx.lineTo(sx(p.x), sy(p.y)); });
+      ctx.stroke();
+      if (dash) ctx.setLineDash([]);
+    };
 
-    // draw trajectory — drag
-    if (drag) {
-      drawPath(ctx, drag, sx, sy, "#ef4444", 2, [6, 4]);
-    }
+    drawPath(curIdeal_, "#3b82f6", 2.5);
+    if (curDrag_) drawPath(curDrag_, "#ef4444", 2, [6, 4]);
 
-    // current position dots
-    const prog = progressRef.current;
-    const ci = getPointAt(ideal, prog);
+    // projectile dots
+    const ci = getPointAt(curIdeal_, prog);
     ctx.fillStyle = "#3b82f6";
     ctx.beginPath(); ctx.arc(sx(ci.x), sy(ci.y), 6, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = "#fff";
     ctx.beginPath(); ctx.arc(sx(ci.x), sy(ci.y), 2.5, 0, Math.PI * 2); ctx.fill();
 
-    if (drag) {
-      const cd = getPointAt(drag, Math.min(prog * totalTime / dragTime, 1));
+    if (curDrag_) {
+      const cd = getPointAt(curDrag_, Math.min(prog * tTotal / tDrag, 1));
       ctx.fillStyle = "#ef4444";
       ctx.beginPath(); ctx.arc(sx(cd.x), sy(cd.y), 6, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = "#fff";
       ctx.beginPath(); ctx.arc(sx(cd.x), sy(cd.y), 2.5, 0, Math.PI * 2); ctx.fill();
     }
 
-    // velocity vector on ideal
+    // velocity vector
     const vScale = 0.6;
-    ctx.strokeStyle = "#22c55e";
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(sx(ci.x), sy(ci.y));
-    ctx.lineTo(sx(ci.x) + ci.vx * vScale, sy(ci.y) - ci.vy * vScale);
-    ctx.stroke();
-    // arrowhead
-    const aLen = 6;
-    const aAngle = Math.atan2(-ci.vy * vScale, ci.vx * vScale);
     const tipX = sx(ci.x) + ci.vx * vScale;
     const tipY = sy(ci.y) - ci.vy * vScale;
-    ctx.fillStyle = "#22c55e";
-    ctx.beginPath();
+    ctx.strokeStyle = "#22c55e"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(sx(ci.x), sy(ci.y)); ctx.lineTo(tipX, tipY); ctx.stroke();
+    const aAngle = Math.atan2(-(ci.vy * vScale), ci.vx * vScale);
+    ctx.fillStyle = "#22c55e"; ctx.beginPath();
     ctx.moveTo(tipX, tipY);
-    ctx.lineTo(tipX - aLen * Math.cos(aAngle - 0.4), tipY - aLen * Math.sin(aAngle - 0.4));
-    ctx.lineTo(tipX - aLen * Math.cos(aAngle + 0.4), tipY - aLen * Math.sin(aAngle + 0.4));
+    ctx.lineTo(tipX - 6 * Math.cos(aAngle - 0.4), tipY - 6 * Math.sin(aAngle - 0.4));
+    ctx.lineTo(tipX - 6 * Math.cos(aAngle + 0.4), tipY - 6 * Math.sin(aAngle + 0.4));
     ctx.fill();
 
     // legend
-    const lx = pad.l + 10;
-    const ly = pad.t + 14;
+    const lx = pad.l + 10, ly = pad.t + 14;
     ctx.font = "11px sans-serif";
-    ctx.fillStyle = "#3b82f6";
-    ctx.fillRect(lx, ly - 4, 16, 3);
-    ctx.fillText(t("ไม่มีแรงต้าน", "No drag"), lx + 22, ly);
-    if (drag) {
-      ctx.fillStyle = "#ef4444";
-      ctx.setLineDash([4, 3]);
-      ctx.strokeStyle = "#ef4444";
-      ctx.lineWidth = 2;
+    ctx.fillStyle = "#3b82f6"; ctx.fillRect(lx, ly - 4, 16, 3);
+    ctx.fillText("No drag", lx + 22, ly);
+    if (curDrag_) {
+      ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
       ctx.beginPath(); ctx.moveTo(lx, ly + 16); ctx.lineTo(lx + 16, ly + 16); ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillText(t("มีแรงต้านอากาศ", "With air drag"), lx + 22, ly + 20);
+      ctx.fillStyle = "#ef4444"; ctx.fillText("With drag", lx + 22, ly + 20);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ideal, drag, h0, t]);
-
-  function drawPath(
-    ctx: CanvasRenderingContext2D, pts: Point[],
-    sx: (x: number) => number, sy: (y: number) => number,
-    color: string, lineW: number, dash?: number[]
-  ) {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = lineW;
-    if (dash) ctx.setLineDash(dash);
-    ctx.beginPath();
-    pts.forEach((p, i) => {
-      const px = sx(p.x), py = sy(p.y);
-      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
-    });
-    ctx.stroke();
-    if (dash) ctx.setLineDash([]);
-  }
-
-  function niceStep(range: number, targetTicks: number): number {
-    const rough = range / targetTicks;
-    const mag = Math.pow(10, Math.floor(Math.log10(rough)));
-    const res = rough / mag;
-    if (res <= 1) return mag;
-    if (res <= 2) return 2 * mag;
-    if (res <= 5) return 5 * mag;
-    return 10 * mag;
-  }
+  }, []); // stable — reads everything from refs
 
   // ---------- animation loop ----------
   const tick = useCallback((ts: number) => {
@@ -326,7 +283,7 @@ export default function ProjectilePage() {
     if (lastTsRef.current === null) lastTsRef.current = ts;
     const elapsed = (ts - lastTsRef.current) / 1000;
     lastTsRef.current = ts;
-    const speed = 1 / Math.max(maxTime, 1); // real-time playback
+    const speed = 1 / Math.max(maxTimeRef.current, 0.5);
     progressRef.current = Math.min(1, progressRef.current + elapsed * speed);
     setProgress(progressRef.current);
     draw();
@@ -336,9 +293,9 @@ export default function ProjectilePage() {
     } else {
       animRef.current = requestAnimationFrame(tick);
     }
-  }, [maxTime, draw]);
+  }, [draw]);
 
-  const togglePlay = () => {
+  const togglePlay = useCallback(() => {
     if (playingRef.current) {
       playingRef.current = false;
       setPlaying(false);
@@ -353,7 +310,7 @@ export default function ProjectilePage() {
       lastTsRef.current = null;
       animRef.current = requestAnimationFrame(tick);
     }
-  };
+  }, [tick]);
 
   const resetSim = useCallback(() => {
     cancelAnimationFrame(animRef.current);
@@ -364,25 +321,22 @@ export default function ProjectilePage() {
     setProgress(0);
   }, []);
 
-  // redraw on param change
+  // Redraw when params change (NOT on every render)
   useEffect(() => {
     resetSim();
-    // small delay so canvas size is settled
-    const id = requestAnimationFrame(() => draw());
-    return () => cancelAnimationFrame(id);
-  }, [h0, v0, angle, g, mass, dragCoeff, showDrag, draw, resetSim]);
+    requestAnimationFrame(() => draw());
+  }, [ideal, drag, resetSim, draw]);
 
-  // resize
+  // Resize handler
   useEffect(() => {
     const onResize = () => draw();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, [draw]);
 
-  // ---------- slider helper ----------
-  function Slider({
-    label, value, onChange, min, max, step, unit, symbol,
-  }: {
+  const speedTotal = Math.sqrt(curIdeal.vx ** 2 + curIdeal.vy ** 2);
+
+  function Slider({ label, value, onChange, min, max, step, unit, symbol }: {
     label: string; value: number; onChange: (v: number) => void;
     min: number; max: number; step: number; unit: string; symbol: string;
   }) {
@@ -391,21 +345,15 @@ export default function ProjectilePage() {
         <label className="text-xs text-[var(--muted)] w-40 shrink-0">
           <span className="font-medium text-[var(--foreground)]">{symbol}</span> {label}
         </label>
-        <input
-          type="range" min={min} max={max} step={step} value={value}
-          onChange={(e) => onChange(+e.target.value)}
-          className="flex-1"
-        />
+        <input type="range" min={min} max={max} step={step} value={value}
+          onChange={(e) => onChange(+e.target.value)} className="flex-1" />
         <span className="text-xs font-medium min-w-[60px] text-right">{value} {unit}</span>
       </div>
     );
   }
 
-  const speedTotal = Math.sqrt(curIdeal.vx * curIdeal.vx + curIdeal.vy * curIdeal.vy);
-
   return (
     <div className="p-4 sm:p-8 max-w-5xl mx-auto">
-      {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-[var(--muted)] mb-6">
         <Link href="/physics" className="hover:underline">{t("ฟิสิกส์", "Physics")}</Link>
         <span>›</span>
@@ -440,86 +388,43 @@ export default function ProjectilePage() {
       {/* Controls */}
       <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--card-border)] p-4 mb-4">
         <p className="text-xs text-[var(--muted)] font-medium mb-3">{t("ตั้งค่าพารามิเตอร์", "Parameters")}</p>
-        <Slider
-          label={t("ความเร็วเริ่มต้น", "Initial Velocity")}
-          symbol="v₀" value={v0} onChange={setV0}
-          min={1} max={80} step={1} unit="m/s"
-        />
-        <Slider
-          label={t("มุมยิง", "Launch Angle")}
-          symbol="θ" value={angle} onChange={setAngle}
-          min={0} max={90} step={1} unit="°"
-        />
-        <Slider
-          label={t("ความสูงเริ่มต้น", "Initial Height")}
-          symbol="h₀" value={h0} onChange={setH0}
-          min={0} max={50} step={1} unit="m"
-        />
-        <Slider
-          label={t("ค่าแรงโน้มถ่วง", "Gravity")}
-          symbol="g" value={g} onChange={setG}
-          min={1} max={20} step={0.1} unit="m/s²"
-        />
+        <Slider label={t("ความเร็วเริ่มต้น", "Initial Velocity")} symbol="v₀" value={v0} onChange={setV0} min={1} max={80} step={1} unit="m/s" />
+        <Slider label={t("มุมยิง", "Launch Angle")} symbol="θ" value={angle} onChange={setAngle} min={0} max={90} step={1} unit="°" />
+        <Slider label={t("ความสูงเริ่มต้น", "Initial Height")} symbol="h₀" value={h0} onChange={setH0} min={0} max={50} step={1} unit="m" />
+        <Slider label={t("ค่าแรงโน้มถ่วง", "Gravity")} symbol="g" value={g} onChange={setG} min={1} max={20} step={0.1} unit="m/s²" />
 
-        {/* Air drag toggle */}
         <div className="mt-3 pt-3 border-t border-[var(--card-border)]">
           <label className="flex items-center gap-2 cursor-pointer mb-2">
-            <input
-              type="checkbox" checked={showDrag}
-              onChange={(e) => setShowDrag(e.target.checked)}
-              className="w-4 h-4 accent-red-500"
-            />
-            <span className="text-sm font-medium text-red-500">
-              {t("เปิดแรงต้านอากาศ", "Enable Air Drag")}
-            </span>
+            <input type="checkbox" checked={showDrag} onChange={(e) => setShowDrag(e.target.checked)} className="w-4 h-4 accent-red-500" />
+            <span className="text-sm font-medium text-red-500">{t("เปิดแรงต้านอากาศ", "Enable Air Drag")}</span>
           </label>
-
           {showDrag && (
             <>
-              <Slider
-                label={t("สัมประสิทธิ์แรงต้าน", "Drag Coefficient")}
-                symbol="k" value={dragCoeff} onChange={setDragCoeff}
-                min={0} max={2} step={0.05} unit="N·s/m"
-              />
-              <Slider
-                label={t("มวลวัตถุ", "Mass")}
-                symbol="m" value={mass} onChange={setMass}
-                min={0.1} max={10} step={0.1} unit="kg"
-              />
+              <Slider label={t("สัมประสิทธิ์แรงต้าน", "Drag Coefficient")} symbol="k" value={dragCoeff} onChange={setDragCoeff} min={0} max={2} step={0.05} unit="N·s/m" />
+              <Slider label={t("มวลวัตถุ", "Mass")} symbol="m" value={mass} onChange={setMass} min={0.1} max={10} step={0.1} unit="kg" />
             </>
           )}
         </div>
       </div>
 
-      {/* Play/Reset */}
-      <div className="flex gap-2 mb-4">
-        <button
-          onClick={togglePlay}
-          className="px-5 py-2 rounded-lg text-sm font-medium bg-[var(--foreground)] text-[var(--background)] hover:opacity-85 active:scale-[0.98]"
-        >
-          {playing
-            ? t("⏸ หยุด", "⏸ Pause")
-            : progress > 0 && progress < 1
-            ? t("▶ ต่อ", "▶ Resume")
-            : t("▶ เริ่ม", "▶ Start")}
+      {/* Play/Reset + scrubber */}
+      <div className="flex gap-2 mb-4 items-center">
+        <button onClick={togglePlay}
+          className="px-5 py-2 rounded-lg text-sm font-medium bg-[var(--foreground)] text-[var(--background)] hover:opacity-85 active:scale-[0.98]">
+          {playing ? t("⏸ หยุด", "⏸ Pause") : progress > 0 && progress < 1 ? t("▶ ต่อ", "▶ Resume") : t("▶ เริ่ม", "▶ Start")}
         </button>
-        <button
-          onClick={resetSim}
-          className="px-5 py-2 rounded-lg text-sm border border-[var(--card-border)] hover:bg-[var(--card-bg)] active:scale-[0.98]"
-        >
+        <button onClick={resetSim}
+          className="px-5 py-2 rounded-lg text-sm border border-[var(--card-border)] hover:bg-[var(--card-bg)] active:scale-[0.98]">
           {t("↺ รีเซ็ต", "↺ Reset")}
         </button>
-        {/* Progress slider */}
-        <input
-          type="range" min={0} max={1} step={0.002} value={progress}
+        <input type="range" min={0} max={1} step={0.002} value={progress}
           onChange={(e) => {
             const v = +e.target.value;
             progressRef.current = v;
             setProgress(v);
             draw();
           }}
-          className="flex-1"
-        />
+          className="flex-1" />
       </div>
 
       {/* Canvas */}
@@ -536,16 +441,8 @@ export default function ProjectilePage() {
           { label: "vₓ", value: curIdeal.vx.toFixed(2), unit: "m/s" },
           { label: "vᵧ", value: curIdeal.vy.toFixed(2), unit: "m/s" },
           { label: "|v|", value: speedTotal.toFixed(2), unit: "m/s" },
-          {
-            label: t("มุม v", "v angle"),
-            value: (Math.atan2(curIdeal.vy, curIdeal.vx) / DEG).toFixed(1),
-            unit: "°",
-          },
-          {
-            label: "KE",
-            value: (0.5 * mass * speedTotal * speedTotal).toFixed(1),
-            unit: "J",
-          },
+          { label: t("มุม v", "v angle"), value: (Math.atan2(curIdeal.vy, curIdeal.vx) / DEG).toFixed(1), unit: "°" },
+          { label: "KE", value: (0.5 * mass * speedTotal * speedTotal).toFixed(1), unit: "J" },
         ] as { label: string; value: string; unit: string }[]).map((r) => (
           <div key={r.label} className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-lg p-2 text-center">
             <div className="text-[10px] text-[var(--muted)]">{r.label}</div>
@@ -555,36 +452,24 @@ export default function ProjectilePage() {
         ))}
       </div>
 
-      {/* Summary stats */}
+      {/* Summary — ideal */}
       <p className="text-xs text-[var(--muted)] font-medium mb-2">{t("ผลลัพธ์ (ไม่มีแรงต้าน)", "Results (No Drag)")}</p>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-        <div className="bg-blue-50 dark:bg-blue-950 rounded-xl p-3 text-center">
-          <div className="text-[11px] text-[var(--muted)] mb-0.5">{t("พิสัย", "Range")}</div>
-          <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">{range.toFixed(2)}</div>
-          <div className="text-[10px] text-[var(--muted)]">m</div>
-        </div>
-        <div className="bg-blue-50 dark:bg-blue-950 rounded-xl p-3 text-center">
-          <div className="text-[11px] text-[var(--muted)] mb-0.5">{t("ความสูงสูงสุด", "Max Height")}</div>
-          <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">{maxHeight.toFixed(2)}</div>
-          <div className="text-[10px] text-[var(--muted)]">m</div>
-        </div>
-        <div className="bg-blue-50 dark:bg-blue-950 rounded-xl p-3 text-center">
-          <div className="text-[11px] text-[var(--muted)] mb-0.5">{t("เวลาทั้งหมด", "Total Time")}</div>
-          <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">{totalTime.toFixed(2)}</div>
-          <div className="text-[10px] text-[var(--muted)]">s</div>
-        </div>
-        <div className="bg-blue-50 dark:bg-blue-950 rounded-xl p-3 text-center">
-          <div className="text-[11px] text-[var(--muted)] mb-0.5">{t("ความเร็วกระทบพื้น", "Impact Speed")}</div>
-          <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-            {Math.sqrt(
-              ideal[ideal.length - 1]?.vx ** 2 + ideal[ideal.length - 1]?.vy ** 2
-            ).toFixed(2)}
+        {([
+          { label: t("พิสัย", "Range"), value: range.toFixed(2) },
+          { label: t("ความสูงสูงสุด", "Max Height"), value: maxHeight.toFixed(2) },
+          { label: t("เวลาทั้งหมด", "Total Time"), value: totalTime.toFixed(2) },
+          { label: t("ความเร็วกระทบพื้น", "Impact Speed"), value: Math.sqrt(ideal[ideal.length - 1]?.vx ** 2 + ideal[ideal.length - 1]?.vy ** 2).toFixed(2) },
+        ]).map((s) => (
+          <div key={s.label} className="bg-blue-50 dark:bg-blue-950 rounded-xl p-3 text-center">
+            <div className="text-[11px] text-[var(--muted)] mb-0.5">{s.label}</div>
+            <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">{s.value}</div>
+            <div className="text-[10px] text-[var(--muted)]">m</div>
           </div>
-          <div className="text-[10px] text-[var(--muted)]">m/s</div>
-        </div>
+        ))}
       </div>
 
-      {/* If drag enabled, show comparison */}
+      {/* Summary — drag */}
       {drag && (
         <>
           <p className="text-xs text-[var(--muted)] font-medium mb-2">{t("ผลลัพธ์ (มีแรงต้านอากาศ)", "Results (With Air Drag)")}</p>
@@ -592,13 +477,11 @@ export default function ProjectilePage() {
             <div className="bg-red-50 dark:bg-red-950 rounded-xl p-3 text-center">
               <div className="text-[11px] text-[var(--muted)] mb-0.5">{t("พิสัย", "Range")}</div>
               <div className="text-lg font-semibold text-red-600 dark:text-red-400">{(drag[drag.length - 1]?.x ?? 0).toFixed(2)}</div>
-              <div className="text-[10px] text-[var(--muted)]">m ({((1 - (drag[drag.length - 1]?.x ?? 0) / range) * 100).toFixed(0)}% {t("ลดลง", "less")})</div>
+              <div className="text-[10px] text-[var(--muted)]">m ({range > 0 ? ((1 - (drag[drag.length - 1]?.x ?? 0) / range) * 100).toFixed(0) : 0}% {t("ลดลง", "less")})</div>
             </div>
             <div className="bg-red-50 dark:bg-red-950 rounded-xl p-3 text-center">
               <div className="text-[11px] text-[var(--muted)] mb-0.5">{t("ความสูงสูงสุด", "Max Height")}</div>
-              <div className="text-lg font-semibold text-red-600 dark:text-red-400">
-                {Math.max(...drag.map(p => p.y)).toFixed(2)}
-              </div>
+              <div className="text-lg font-semibold text-red-600 dark:text-red-400">{Math.max(...drag.map(p => p.y)).toFixed(2)}</div>
               <div className="text-[10px] text-[var(--muted)]">m</div>
             </div>
             <div className="bg-red-50 dark:bg-red-950 rounded-xl p-3 text-center">
@@ -608,18 +491,14 @@ export default function ProjectilePage() {
             </div>
             <div className="bg-red-50 dark:bg-red-950 rounded-xl p-3 text-center">
               <div className="text-[11px] text-[var(--muted)] mb-0.5">{t("ความเร็วกระทบพื้น", "Impact Speed")}</div>
-              <div className="text-lg font-semibold text-red-600 dark:text-red-400">
-                {Math.sqrt(
-                  (drag[drag.length - 1]?.vx ?? 0) ** 2 + (drag[drag.length - 1]?.vy ?? 0) ** 2
-                ).toFixed(2)}
-              </div>
+              <div className="text-lg font-semibold text-red-600 dark:text-red-400">{Math.sqrt((drag[drag.length - 1]?.vx ?? 0) ** 2 + (drag[drag.length - 1]?.vy ?? 0) ** 2).toFixed(2)}</div>
               <div className="text-[10px] text-[var(--muted)]">m/s</div>
             </div>
           </div>
         </>
       )}
 
-      {/* Theory section */}
+      {/* Theory */}
       <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--card-border)] p-5">
         <h3 className="text-sm font-semibold mb-3">{t("สรุปทฤษฎี", "Theory Summary")}</h3>
         <div className="grid sm:grid-cols-2 gap-4 text-xs text-[var(--muted)] leading-relaxed">
