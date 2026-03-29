@@ -34,6 +34,24 @@ export default function PhysicsPage() {
       href: "/physics/projectile",
       icon: "🎯",
     },
+    {
+      name: t("งาน (Work)", "Work"),
+      description: t(
+        "คำนวณงานจากแรงที่กระทำต่อวัตถุบนพื้นราบ ปรับมุม ระยะทาง และแรงเสียดทานได้",
+        "Calculate work done by a force on a box. Adjust angle, distance, and friction."
+      ),
+      href: "/physics/work",
+      icon: "🔧",
+    },
+    {
+      name: t("พลังงาน (Energy)", "Energy"),
+      description: t(
+        "สำรวจการอนุรักษ์พลังงานในการตกอิสระ ดูสมดุลระหว่างพลังงานศักย์และพลังงานจลน์",
+        "Explore energy conservation in free fall. See the balance between PE and KE."
+      ),
+      href: "/physics/energy",
+      icon: "⚡",
+    },
   ];
 
   return (
