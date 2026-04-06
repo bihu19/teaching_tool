@@ -44,6 +44,7 @@ export default function Sidebar() {
         { name: t("โพรเจกไทล์", "Projectile Motion"), href: "/physics/projectile" },
         { name: t("งาน", "Work"), href: "/physics/work" },
         { name: t("พลังงาน", "Energy"), href: "/physics/energy" },
+        { name: t("แรงเสียดทาน (กล่องซ้อน)", "Friction (Stacked Boxes)"), href: "/physics/friction" },
       ],
     },
   ];
