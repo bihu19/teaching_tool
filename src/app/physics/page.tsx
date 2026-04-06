@@ -52,6 +52,15 @@ export default function PhysicsPage() {
       href: "/physics/energy",
       icon: "⚡",
     },
+    {
+      name: t("แรงเสียดทาน (กล่องซ้อน)", "Friction (Stacked Boxes)"),
+      description: t(
+        "จำลองกล่องซ้อนกัน 2 ใบบนพื้น ตั้งค่าสัมประสิทธิ์แรงเสียดทานระหว่างผิวสัมผัส แสดง FBD และคำนวณความเร่งของแต่ละกล่อง",
+        "Simulate two stacked boxes on a surface. Set friction coefficients between each surface, view free body diagrams, and calculate each box's acceleration."
+      ),
+      href: "/physics/friction",
+      icon: "📦",
+    },
   ];
 
   return (
