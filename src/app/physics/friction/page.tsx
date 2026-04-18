@@ -21,7 +21,17 @@ function Arrow({
   const hl = Math.min(8, len * 0.35);
   const hx = x2 - ux * hl, hy = y2 - uy * hl;
   const px = -uy * 3.5, py = ux * 3.5;
-  const side = labelSide === "right" ? -1 : 1;
+
+  // Label is placed perpendicular to the arrow, clear of the line itself.
+  // For a mostly-horizontal arrow: labelSide "left" → above, "right" → below.
+  // For a mostly-vertical arrow:   labelSide "left" → left,  "right" → right.
+  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+  const side = labelSide === "right" ? 1 : -1;
+  const offset = fontSize * 0.9 + 5;
+  const isHorizontal = Math.abs(ux) >= Math.abs(uy);
+  const labelX = isHorizontal ? mx : mx + side * offset;
+  const labelY = isHorizontal ? my + side * offset : my;
+
   return (
     <g>
       <line x1={x1} y1={y1} x2={x2} y2={y2}
@@ -30,8 +40,8 @@ function Arrow({
       <polygon points={`${x2},${y2} ${hx + px},${hy + py} ${hx - px},${hy - py}`} fill={color} />
       {label && (
         <text
-          x={(x1 + x2) / 2 + side * (Math.abs(py) + Math.abs(px)) * 1.8}
-          y={(y1 + y2) / 2 + side * Math.abs(px) * 0.5}
+          x={labelX}
+          y={labelY}
           textAnchor="middle" dominantBaseline="central"
           fontSize={fontSize} fill={color} fontWeight={600}
         >
@@ -390,6 +400,7 @@ export default function FrictionPage() {
                 x2={BX + BOX_W + 4 + Math.sign(calc.f1_on_bottom) * Math.min(60, Math.abs(calc.f1_on_bottom) * 0.8)} y2={BY_B + 4}
                 color="#3b82f6"
                 label={`f₁→B`}
+                labelSide="right"
                 dashed
                 fontSize={9}
               />
