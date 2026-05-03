@@ -109,6 +109,21 @@ export default function RelativeMotionPage() {
     const mSc = 0.012;
     const dirB = sc.dirB;
 
+    const birdA = document.getElementById("birdA");
+    const birdBEl = document.getElementById("birdB");
+    const tree1 = document.getElementById("bird-tree1");
+    const tree2 = document.getElementById("bird-tree2");
+    const dashEl = document.getElementById("bird-road-dashes");
+    const mirrorB = document.getElementById("mirrorB");
+    const mt1 = document.getElementById("mirrorTree1");
+    const mt2 = document.getElementById("mirrorTree2");
+    const mDashes = document.getElementById("mirrorDashes");
+
+    if (dashEl) dashEl.style.backgroundImage =
+      "repeating-linear-gradient(to right, #fbbf24 0px, #fbbf24 50px, transparent 50px, transparent 90px)";
+    if (mDashes) mDashes.style.backgroundImage =
+      "repeating-linear-gradient(to right, #4b5563 0px, #4b5563 20px, transparent 20px, transparent 35px)";
+
     const frame = () => {
       const p = posRef.current;
       const birdEl = birdRef.current;
@@ -126,12 +141,6 @@ export default function RelativeMotionPage() {
       if (p.tx1 < -15) p.tx1 += W + 20;
       if (p.tx2 < -15) p.tx2 += W + 20;
 
-      const birdA = document.getElementById("birdA");
-      const birdBEl = document.getElementById("birdB");
-      const tree1 = document.getElementById("bird-tree1");
-      const tree2 = document.getElementById("bird-tree2");
-      const dashEl = document.getElementById("bird-road-dashes");
-
       if (birdA) birdA.style.left = Math.round(p.pA) + "px";
       if (birdBEl) {
         birdBEl.style.left = Math.round(p.pB) + "px";
@@ -139,11 +148,7 @@ export default function RelativeMotionPage() {
       }
       if (tree1) tree1.style.left = Math.round(p.tx1) + "px";
       if (tree2) tree2.style.left = Math.round(p.tx2) + "px";
-      if (dashEl) {
-        dashEl.style.backgroundImage =
-          "repeating-linear-gradient(to right, #fbbf24 0px, #fbbf24 50px, transparent 50px, transparent 90px)";
-        dashEl.style.backgroundPositionX = Math.round(p.rdx % 90) + "px";
-      }
+      if (dashEl) dashEl.style.backgroundPositionX = Math.round(p.rdx % 90) + "px";
 
       let relV = 0;
       if (relSpeed !== null) relV = relSpeed;
@@ -167,11 +172,6 @@ export default function RelativeMotionPage() {
       if (p.mtx1 > 88) p.mtx1 -= 98;
       if (p.mtx2 > 88) p.mtx2 -= 98;
 
-      const mirrorB = document.getElementById("mirrorB");
-      const mt1 = document.getElementById("mirrorTree1");
-      const mt2 = document.getElementById("mirrorTree2");
-      const mDashes = document.getElementById("mirrorDashes");
-
       if (mirrorB) {
         const distFromCenter = Math.abs(p.mpB - 44) / 44;
         const mCarScale = Math.max(0.4, 1 - distFromCenter * 0.5);
@@ -180,11 +180,7 @@ export default function RelativeMotionPage() {
       }
       if (mt1) mt1.style.left = Math.round(p.mtx1) + "%";
       if (mt2) mt2.style.left = Math.round(p.mtx2) + "%";
-      if (mDashes) {
-        mDashes.style.backgroundImage =
-          "repeating-linear-gradient(to right, #4b5563 0px, #4b5563 20px, transparent 20px, transparent 35px)";
-        mDashes.style.backgroundPositionX = Math.round(p.mrdx % 35) + "px";
-      }
+      if (mDashes) mDashes.style.backgroundPositionX = Math.round(p.mrdx % 35) + "px";
 
       animRef.current = requestAnimationFrame(frame);
     };
@@ -344,9 +340,9 @@ export default function RelativeMotionPage() {
           <div className="text-xl font-medium">{speedB}</div>
           <div className="text-[11px] text-[var(--muted)]">km/h</div>
         </div>
-        <div className="bg-blue-50 dark:bg-blue-950 rounded-xl p-3 text-center">
+        <div className="bg-[var(--card-bg)] border border-[var(--accent)] rounded-xl p-3 text-center">
           <div className="text-[11px] text-[var(--muted)] mb-1">{sc.relLabel(t)}</div>
-          <div className="text-xl font-medium text-blue-600 dark:text-blue-400">
+          <div className="text-xl font-medium text-[var(--accent)]">
             {relSpeed !== null ? Math.abs(relSpeed) : "–"}
           </div>
           <div className="text-[11px] text-[var(--muted)]">km/h</div>

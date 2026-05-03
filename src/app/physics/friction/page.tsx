@@ -212,6 +212,14 @@ export default function FrictionPage() {
     Math.abs(calc.f1_on_top), Math.abs(calc.f2_on_bottom), F, 1
   );
 
+  const badgeColor = calc.status === "static" ? "#ef4444"
+    : calc.status === "together" ? "#22c55e" : "#f59e0b";
+  const badgeText = calc.status === "static"
+    ? t("ไม่เคลื่อนที่", "Static")
+    : calc.status === "together"
+    ? t("เคลื่อนที่ด้วยกัน ✓", "Move together ✓")
+    : t("กล่องไถลกัน ⚡", "Boxes slide ⚡");
+
   return (
     <div className="p-4 sm:p-8 max-w-4xl mx-auto">
       {/* Breadcrumb */}
@@ -408,25 +416,12 @@ export default function FrictionPage() {
           )}
 
           {/* Status badge */}
-          {(() => {
-            const badgeColor = calc.status === "static" ? "#ef4444"
-              : calc.status === "together" ? "#22c55e" : "#f59e0b";
-            const badgeText = calc.status === "static"
-              ? t("ไม่เคลื่อนที่", "Static")
-              : calc.status === "together"
-              ? t("เคลื่อนที่ด้วยกัน ✓", "Move together ✓")
-              : t("กล่องไถลกัน ⚡", "Boxes slide ⚡");
-            return (
-              <>
-                <rect x={10} y={10} width={180} height={28} rx={14}
-                  fill={badgeColor} fillOpacity={0.15} stroke={badgeColor} strokeWidth={1} />
-                <text x={100} y={29} textAnchor="middle" fontSize={12}
-                  fill={badgeColor} fontWeight={600}>
-                  {badgeText}
-                </text>
-              </>
-            );
-          })()}
+          <rect x={10} y={10} width={180} height={28} rx={14}
+            fill={badgeColor} fillOpacity={0.15} stroke={badgeColor} strokeWidth={1} />
+          <text x={100} y={29} textAnchor="middle" fontSize={12}
+            fill={badgeColor} fontWeight={600}>
+            {badgeText}
+          </text>
 
           {/* Acceleration arrows (if moving) */}
           {calc.a_top > 0.01 && (

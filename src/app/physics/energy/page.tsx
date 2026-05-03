@@ -24,17 +24,16 @@ export default function EnergyPage() {
   const tRef = useRef(0);
   const lastTsRef = useRef<number | null>(null);
   const animRef = useRef(0);
-  const paramsRef = useRef({ height: 20, v0: 0, mass: 1 });
+  const paramsRef = useRef({ height: 20, v0: 0 });
 
   useEffect(() => {
-    paramsRef.current = { height, v0, mass };
-  }, [height, v0, mass]);
+    paramsRef.current = { height, v0 };
+  }, [height, v0]);
 
   /* ---- energy calculations ---- */
   const totalE = mass * G * height + 0.5 * mass * v0 * v0;
   const pe = mass * G * Math.max(0, curY);
   const ke = Math.max(0, totalE - pe);
-  const speed = curV;
 
   /* ---- animation loop ---- */
   const tick = useCallback((ts: number) => {
@@ -47,7 +46,6 @@ export default function EnergyPage() {
     const { height: h, v0: iv } = paramsRef.current;
     const tt = tRef.current;
 
-    // y(t) = h - v0*t - 0.5*g*t²
     const y = h - iv * tt - 0.5 * G * tt * tt;
     const v = iv + G * tt;
 
@@ -94,6 +92,10 @@ export default function EnergyPage() {
   useEffect(() => {
     resetSim();
   }, [height, v0, mass, resetSim]);
+
+  useEffect(() => {
+    return () => cancelAnimationFrame(animRef.current);
+  }, []);
 
   /* ---- SVG constants ---- */
   const COL_H = 360; // column height in SVG
@@ -328,7 +330,7 @@ export default function EnergyPage() {
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-5">
         <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl p-3">
           <div className="text-[10px] text-[var(--muted)] mb-0.5">{t("ความเร็ว (v)", "Speed (v)")}</div>
-          <div className="text-lg font-medium">{speed.toFixed(2)}</div>
+          <div className="text-lg font-medium">{curV.toFixed(2)}</div>
           <div className="text-[10px] text-[var(--muted)]">m/s</div>
         </div>
         <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl p-3">

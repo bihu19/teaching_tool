@@ -106,6 +106,12 @@ export default function WorkPage() {
   const fbdNormalLen = Math.min(FBD_ARROW, calc.N * 0.6);
   const fbdFrictionLen = hasFriction && calc.canMove ? Math.min(FBD_ARROW, calc.fk * 1.2) : 0;
 
+  const statusText = calc.liftsOff
+    ? t("กล่องลอย!", "Box lifts off!")
+    : calc.canMove
+    ? t("กล่องเคลื่อนที่ ✓", "Box moves ✓")
+    : t("กล่องไม่เคลื่อนที่ ✕", "Box stays ✕");
+
   return (
     <div className="p-4 sm:p-8 max-w-4xl mx-auto">
       {/* Breadcrumb */}
@@ -290,11 +296,7 @@ export default function WorkPage() {
               stroke={calc.canMove ? "#22c55e" : "#ef4444"} strokeWidth={1} />
             <text x={SVG_W - 95} y={29} textAnchor="middle" fontSize={12}
               fill={calc.canMove ? "#22c55e" : "#ef4444"} fontWeight={600}>
-              {calc.liftsOff
-                ? t("กล่องลอย!", "Box lifts off!")
-                : calc.canMove
-                ? t("กล่องเคลื่อนที่ ✓", "Box moves ✓")
-                : t("กล่องไม่เคลื่อนที่ ✕", "Box stays ✕")}
+              {statusText}
             </text>
           </svg>
         </div>

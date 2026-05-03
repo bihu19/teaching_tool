@@ -78,6 +78,22 @@ function getPointAt(pts: Point[], prog: number): Point {
   return pts[pts.length - 1];
 }
 
+function Slider({ label, value, onChange, min, max, step, unit, symbol }: {
+  label: string; value: number; onChange: (v: number) => void;
+  min: number; max: number; step: number; unit: string; symbol: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 mb-2">
+      <label className="text-xs text-[var(--muted)] w-40 shrink-0">
+        <span className="font-medium text-[var(--foreground)]">{symbol}</span> {label}
+      </label>
+      <input type="range" min={min} max={max} step={step} value={value}
+        onChange={(e) => onChange(+e.target.value)} className="flex-1" />
+      <span className="text-xs font-medium min-w-[60px] text-right">{value} {unit}</span>
+    </div>
+  );
+}
+
 function niceStep(range: number, targetTicks: number): number {
   const rough = range / targetTicks;
   const mag = Math.pow(10, Math.floor(Math.log10(rough)));
@@ -126,11 +142,13 @@ export default function ProjectilePage() {
   const maxTimeRef = useRef(maxTime);
   const totalTimeRef = useRef(totalTime);
   const dragTimeRef = useRef(dragTime);
-  useEffect(() => { idealRef.current = ideal; }, [ideal]);
-  useEffect(() => { dragRef.current = drag; }, [drag]);
-  useEffect(() => { maxTimeRef.current = maxTime; }, [maxTime]);
-  useEffect(() => { totalTimeRef.current = totalTime; }, [totalTime]);
-  useEffect(() => { dragTimeRef.current = dragTime; }, [dragTime]);
+  useEffect(() => {
+    idealRef.current = ideal;
+    dragRef.current = drag;
+    maxTimeRef.current = maxTime;
+    totalTimeRef.current = totalTime;
+    dragTimeRef.current = dragTime;
+  }, [ideal, drag, maxTime, totalTime, dragTime]);
 
   // Derived stats (ideal)
   const vy0 = v0 * Math.sin(angle * DEG);
@@ -336,22 +354,6 @@ export default function ProjectilePage() {
 
   const speedTotal = Math.sqrt(curIdeal.vx ** 2 + curIdeal.vy ** 2);
 
-  function Slider({ label, value, onChange, min, max, step, unit, symbol }: {
-    label: string; value: number; onChange: (v: number) => void;
-    min: number; max: number; step: number; unit: string; symbol: string;
-  }) {
-    return (
-      <div className="flex items-center gap-3 mb-2">
-        <label className="text-xs text-[var(--muted)] w-40 shrink-0">
-          <span className="font-medium text-[var(--foreground)]">{symbol}</span> {label}
-        </label>
-        <input type="range" min={min} max={max} step={step} value={value}
-          onChange={(e) => onChange(+e.target.value)} className="flex-1" />
-        <span className="text-xs font-medium min-w-[60px] text-right">{value} {unit}</span>
-      </div>
-    );
-  }
-
   return (
     <div className="p-4 sm:p-8 max-w-5xl mx-auto">
       <div className="flex items-center gap-2 text-sm text-[var(--muted)] mb-6">
@@ -379,7 +381,7 @@ export default function ProjectilePage() {
           y = <span className="font-medium text-[var(--foreground)]">h₀ + v₀sin(θ)·t − ½gt²</span>
         </span>
         {showDrag && dragCoeff > 0 && (
-          <span className="bg-red-50 dark:bg-red-950 rounded-full px-3 py-1 text-xs font-mono text-red-600 dark:text-red-400">
+          <span className="bg-[var(--card-bg)] border border-[#ef4444] rounded-full px-3 py-1 text-xs font-mono text-[#ef4444]">
             F<sub>drag</sub> = <span className="font-medium">−k·v</span>
           </span>
         )}
@@ -461,9 +463,9 @@ export default function ProjectilePage() {
           { label: t("เวลาทั้งหมด", "Total Time"), value: totalTime.toFixed(2) },
           { label: t("ความเร็วกระทบพื้น", "Impact Speed"), value: Math.sqrt(ideal[ideal.length - 1]?.vx ** 2 + ideal[ideal.length - 1]?.vy ** 2).toFixed(2) },
         ]).map((s) => (
-          <div key={s.label} className="bg-blue-50 dark:bg-blue-950 rounded-xl p-3 text-center">
+          <div key={s.label} className="bg-[var(--card-bg)] border border-[var(--accent)] rounded-xl p-3 text-center">
             <div className="text-[11px] text-[var(--muted)] mb-0.5">{s.label}</div>
-            <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">{s.value}</div>
+            <div className="text-lg font-semibold text-[var(--accent)]">{s.value}</div>
             <div className="text-[10px] text-[var(--muted)]">m</div>
           </div>
         ))}
@@ -474,24 +476,24 @@ export default function ProjectilePage() {
         <>
           <p className="text-xs text-[var(--muted)] font-medium mb-2">{t("ผลลัพธ์ (มีแรงต้านอากาศ)", "Results (With Air Drag)")}</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-            <div className="bg-red-50 dark:bg-red-950 rounded-xl p-3 text-center">
+            <div className="bg-[var(--card-bg)] border border-[#ef4444] rounded-xl p-3 text-center">
               <div className="text-[11px] text-[var(--muted)] mb-0.5">{t("พิสัย", "Range")}</div>
-              <div className="text-lg font-semibold text-red-600 dark:text-red-400">{(drag[drag.length - 1]?.x ?? 0).toFixed(2)}</div>
+              <div className="text-lg font-semibold text-[#ef4444]">{(drag[drag.length - 1]?.x ?? 0).toFixed(2)}</div>
               <div className="text-[10px] text-[var(--muted)]">m ({range > 0 ? ((1 - (drag[drag.length - 1]?.x ?? 0) / range) * 100).toFixed(0) : 0}% {t("ลดลง", "less")})</div>
             </div>
-            <div className="bg-red-50 dark:bg-red-950 rounded-xl p-3 text-center">
+            <div className="bg-[var(--card-bg)] border border-[#ef4444] rounded-xl p-3 text-center">
               <div className="text-[11px] text-[var(--muted)] mb-0.5">{t("ความสูงสูงสุด", "Max Height")}</div>
-              <div className="text-lg font-semibold text-red-600 dark:text-red-400">{Math.max(...drag.map(p => p.y)).toFixed(2)}</div>
+              <div className="text-lg font-semibold text-[#ef4444]">{Math.max(...drag.map(p => p.y)).toFixed(2)}</div>
               <div className="text-[10px] text-[var(--muted)]">m</div>
             </div>
-            <div className="bg-red-50 dark:bg-red-950 rounded-xl p-3 text-center">
+            <div className="bg-[var(--card-bg)] border border-[#ef4444] rounded-xl p-3 text-center">
               <div className="text-[11px] text-[var(--muted)] mb-0.5">{t("เวลาทั้งหมด", "Total Time")}</div>
-              <div className="text-lg font-semibold text-red-600 dark:text-red-400">{dragTime.toFixed(2)}</div>
+              <div className="text-lg font-semibold text-[#ef4444]">{dragTime.toFixed(2)}</div>
               <div className="text-[10px] text-[var(--muted)]">s</div>
             </div>
-            <div className="bg-red-50 dark:bg-red-950 rounded-xl p-3 text-center">
+            <div className="bg-[var(--card-bg)] border border-[#ef4444] rounded-xl p-3 text-center">
               <div className="text-[11px] text-[var(--muted)] mb-0.5">{t("ความเร็วกระทบพื้น", "Impact Speed")}</div>
-              <div className="text-lg font-semibold text-red-600 dark:text-red-400">{Math.sqrt((drag[drag.length - 1]?.vx ?? 0) ** 2 + (drag[drag.length - 1]?.vy ?? 0) ** 2).toFixed(2)}</div>
+              <div className="text-lg font-semibold text-[#ef4444]">{Math.sqrt((drag[drag.length - 1]?.vx ?? 0) ** 2 + (drag[drag.length - 1]?.vy ?? 0) ** 2).toFixed(2)}</div>
               <div className="text-[10px] text-[var(--muted)]">m/s</div>
             </div>
           </div>
