@@ -31,7 +31,6 @@ export default function OneDMotionPage() {
   const MAX_T = 20;
   const SCALE = 6;
 
-  // Keep params ref in sync
   useEffect(() => {
     paramsRef.current = { x0, v0, a };
   }, [x0, v0, a]);
@@ -162,10 +161,7 @@ export default function OneDMotionPage() {
 
       trailRef.current.push({ t: curT, x: curX, v: curV, a: ca });
 
-      // Direct DOM update for car — no React re-render needed
       updateCarDOM(curX, curV);
-
-      // Update React state for readouts (throttled to ~20fps via RAF)
       setDisplayT(curT);
       setDisplayX(curX);
       setDisplayV(curV);
@@ -232,6 +228,10 @@ export default function OneDMotionPage() {
   useEffect(() => {
     resetSim();
   }, [x0, v0, a, resetSim]);
+
+  useEffect(() => {
+    return () => cancelAnimationFrame(animRef.current);
+  }, []);
 
   return (
     <div className="p-4 sm:p-8 max-w-4xl mx-auto">
