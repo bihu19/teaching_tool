@@ -32,6 +32,7 @@ export default function Sidebar() {
       href: "/chemistry",
       topics: [
         { name: t("รูปร่างโมเลกุล", "Molecular Shape"), href: "/chemistry/molecular-shape" },
+        { name: t("ตารางธาตุและแนวโน้ม", "Periodic Table & Trends"), href: "/chemistry/periodic-table" },
       ],
     },
     {

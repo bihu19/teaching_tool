@@ -16,6 +16,15 @@ export default function ChemistryPage() {
       href: "/chemistry/molecular-shape",
       icon: "🔬",
     },
+    {
+      name: t("ตารางธาตุและแนวโน้ม", "Periodic Table & Trends"),
+      description: t(
+        "สำรวจแนวโน้มในตารางธาตุ — ขนาดอะตอม, ขนาดไอออน, IE₁, EA, EN และความว่องไว — ด้วยปุ่มไฮไลต์สีสันสดใส",
+        "Explore periodic trends — atomic size, ionic size, IE₁, EA, EN, and reactivity — with one-click color highlights."
+      ),
+      href: "/chemistry/periodic-table",
+      icon: "⚗️",
+    },
   ];
 
   return (
