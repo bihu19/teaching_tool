@@ -11,7 +11,8 @@ Interactive educational tool for Thai high-school students covering Math, Biolog
 - **Next.js 16.2.1** (App Router, Turbopack)
 - **React 19.2.4** with TypeScript
 - **Tailwind CSS 4** — utility classes only, no component library
-- **No external UI/chart libraries** — all visualizations use raw SVG or Canvas
+- **lucide-react** — Lucide icons at 1.5px stroke (the only allowed icon set)
+- **No external charting/UI libraries** — all visualizations use raw SVG or Canvas
 
 ---
 
@@ -20,9 +21,9 @@ Interactive educational tool for Thai high-school students covering Math, Biolog
 ```
 src/
 ├── app/
-│   ├── layout.tsx              ← Root layout (LangProvider + Sidebar wrapper)
-│   ├── globals.css             ← CSS variables (light/dark) + Tailwind import
-│   ├── page.tsx                ← Homepage — subject cards grid
+│   ├── layout.tsx              ← Root layout (LangProvider + Sidebar wrapper + Google Fonts)
+│   ├── globals.css             ← PuayBigTutor CSS tokens + Tailwind import
+│   ├── page.tsx                ← Homepage — aurora hero + subject cards
 │   ├── <subject>/
 │   │   ├── page.tsx            ← Subject landing page (topic list)
 │   │   └── <topic-slug>/
@@ -39,8 +40,8 @@ src/
 |-----------|---------------|----------------------------------------------------------------------------|
 | Math      | `/math`       | *(coming soon)*                                                            |
 | Biology   | `/biology`    | `/biology/digestive-system`                                                |
-| Chemistry | `/chemistry`  | `/chemistry/molecular-shape`                                               |
-| Physics   | `/physics`    | `/physics/relative-motion`, `/physics/1d-motion`, `/physics/projectile`, `/physics/work`, `/physics/energy` |
+| Chemistry | `/chemistry`  | `/chemistry/molecular-shape`, `/chemistry/periodic-table`                  |
+| Physics   | `/physics`    | `/physics/relative-motion`, `/physics/1d-motion`, `/physics/projectile`, `/physics/work`, `/physics/energy`, `/physics/friction` |
 
 ---
 
@@ -61,11 +62,12 @@ Add an entry to the `topics` array in `src/app/<subject>/page.tsx`:
 ```tsx
 {
   name: t("ชื่อภาษาไทย", "English Name"),
-  description: t("คำอธิบายไทย", "English description"),
+  description: t("คำอธิบายไทย", "English description."),
   href: "/<subject>/<topic-slug>",
-  icon: "🔬",  // emoji icon
 },
 ```
+
+Note: no emoji icon — topic cards use text only.
 
 ### Step 3 — Update the Sidebar
 
@@ -75,9 +77,9 @@ Add an entry to the matching subject's `topics` array in `src/components/Sidebar
 { name: t("ชื่อไทย", "English Name"), href: "/<subject>/<topic-slug>" },
 ```
 
-### Step 4 — (Only for new subjects) Update the Homepage
+### Step 4 — (Only for new subjects) Update the Homepage and Sidebar
 
-If adding an entirely new subject, also add a card to `src/app/page.tsx`.
+If adding an entirely new subject, add a card to `src/app/page.tsx` and a subject entry to `src/components/Sidebar.tsx`. Choose a Lucide icon for the new subject.
 
 ---
 
@@ -95,7 +97,6 @@ import { useLang } from "@/components/LangContext";
 export default function TopicPage() {
   const { t } = useLang();
 
-  // --- State ---
   const [param, setParam] = useState(0);
 
   return (
@@ -109,9 +110,9 @@ export default function TopicPage() {
         <span>{t("หัวข้อไทย", "Topic Name")}</span>
       </div>
 
-      {/* 2. Title */}
-      <h1 className="text-2xl font-bold mb-6">
-        🔬 {t("หัวข้อไทย", "Topic Name")}
+      {/* 2. Title — sentence case, no emoji */}
+      <h1 className="text-2xl font-bold mb-6" style={{ color: "var(--foreground)" }}>
+        {t("หัวข้อไทย", "Topic name")}
       </h1>
 
       {/* 3. Formula pills (optional) */}
@@ -123,34 +124,34 @@ export default function TopicPage() {
 
       {/* 4. Controls */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-        <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl p-3">
+        <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-3">
           <label className="text-xs text-[var(--muted)] block mb-1">
             {t("ป้ายไทย", "Label")}
           </label>
           <input
             type="number" value={param}
             onChange={(e) => setParam(Number(e.target.value))}
-            className="w-full border border-[var(--card-border)] rounded-lg px-2 py-1.5 text-sm
+            className="w-full border border-[var(--card-border)] rounded-xl px-2 py-1.5 text-sm
                        bg-[var(--background)] outline-none focus:border-[var(--accent)]"
           />
         </div>
       </div>
 
-      {/* 5. Action buttons (optional — for animations) */}
+      {/* 5. Action buttons — pill shape */}
       <div className="flex gap-2 mb-4">
-        <button className="px-5 py-2 rounded-lg text-sm font-medium
+        <button className="px-5 py-2 rounded-full text-sm font-medium
                            bg-[var(--foreground)] text-[var(--background)]
-                           hover:opacity-85 active:scale-[0.98]">
+                           hover:opacity-85 active:scale-[0.98] transition-all">
           {t("▶ เริ่ม", "▶ Start")}
         </button>
-        <button className="px-5 py-2 rounded-lg text-sm border border-[var(--card-border)]
-                           hover:bg-[var(--card-bg)] active:scale-[0.98]">
+        <button className="px-5 py-2 rounded-full text-sm border border-[var(--card-border)]
+                           hover:bg-[var(--card-bg)] active:scale-[0.98] transition-all">
           {t("↺ รีเซ็ต", "↺ Reset")}
         </button>
       </div>
 
       {/* 6. Visualization (SVG or Canvas) */}
-      <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl p-4 mb-4">
+      <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-4 mb-4">
         <svg viewBox="0 0 600 300" className="w-full h-auto">
           {/* ... */}
         </svg>
@@ -158,7 +159,7 @@ export default function TopicPage() {
 
       {/* 7. Readout cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-        <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl p-3">
+        <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-3">
           <div className="text-[10px] text-[var(--muted)] mb-0.5">{t("ค่า", "Value")}</div>
           <div className="text-lg font-medium">42</div>
           <div className="text-[10px] text-[var(--muted)]">unit</div>
@@ -196,64 +197,98 @@ t("ความเร็ว", "Velocity")
 
 ---
 
-## Styling Rules
+## Design System — PuayBigTutor
 
-### Always use CSS variables — never hardcode colors
+This project uses the **PuayBigTutor** design system: warm cream surfaces, peach accent, Instrument Serif display type, and Manrope body text. The aesthetic is pastel-futurist — friendly and calm, never childish or corporate.
+
+### Fonts
+
+| Role | Font | CSS var |
+|------|------|---------|
+| Display / headlines | Instrument Serif, italic flourish | `var(--font-instrument-serif)` |
+| Body / UI labels | Manrope | `var(--font-manrope)` |
+| Monospace / formulas | JetBrains Mono | `var(--font-jetbrains-mono)` |
+
+Use Instrument Serif italic on the key word in a headline — **max one italic flourish per headline**.
+
+### Styling Rules
+
+#### Always use CSS variables — never hardcode colors
 
 ```tsx
-// ✅ Correct
+// Correct
 className="bg-[var(--card-bg)] border border-[var(--card-border)]"
 className="text-[var(--muted)]"
 className="text-[var(--foreground)]"
 className="bg-[var(--background)]"
 className="focus:border-[var(--accent)]"
 
-// ❌ Wrong — breaks dark mode
+// Wrong — breaks dark mode and brand palette
 className="bg-gray-100 border-gray-200"
 className="text-gray-500"
 ```
 
 ### Available CSS variables
 
-| Variable          | Light       | Dark        | Use for                     |
-|-------------------|-------------|-------------|-----------------------------|
-| `--background`    | `#ffffff`   | `#0a0a0a`   | Page background, inputs     |
-| `--foreground`    | `#171717`   | `#ededed`   | Primary text, borders       |
-| `--card-bg`       | `#f5f5f5`   | `#1a1a1a`   | Cards, panels, sections     |
-| `--card-border`   | `#e5e5e5`   | `#2a2a2a`   | Card/input borders          |
-| `--accent`        | `#3b82f6`   | `#3b82f6`   | Links, focus rings, active  |
-| `--accent-hover`  | `#2563eb`   | `#2563eb`   | Hover state for accent      |
-| `--muted`         | `#737373`   | `#a3a3a3`   | Secondary text, labels      |
+| Variable | Light | Dark | Use for |
+|---|---|---|---|
+| `--background` | `#FBF8F2` (cream-50) | `#1E1810` | Page background, inputs |
+| `--card-bg` | `#F6F1E7` (cream-100) | `#2A221C` | Cards, panels, sections |
+| `--card-border` | `rgba(26,17,5,0.08)` | `rgba(240,220,200,0.10)` | Card/input borders |
+| `--foreground` | `#1A1108` (ink-900) | `#F0E8DC` | Primary text |
+| `--muted` | `#7D6E5A` | `#A89882` | Secondary text, labels |
+| `--accent` | `#E8623A` (peach-500) | `#E8623A` | Links, focus rings, active states |
+| `--accent-hover` | `#C84E28` | `#F07855` | Hover state for accent elements |
+| `--accent-soft` | `#FDE4D4` (peach-100) | `rgba(232,98,58,0.14)` | Chip backgrounds, icon containers |
+| `--accent-deep` | `#9E3318` | `#FDBA9A` | Italic flourish color in headlines |
+| `--sage-soft` | `#D4EDDA` | `rgba(34,197,94,0.12)` | Biology accent chips |
+| `--sky-soft` | `#DBEAFE` | `rgba(59,130,246,0.12)` | Math accent chips |
+| `--lilac-soft` | `#EDE9FE` | `rgba(168,85,247,0.12)` | Chemistry accent chips |
+| `--shadow-sm` | warm 1-layer | — | Resting card lift |
+| `--shadow-md` | warm 2-layer | — | Hover/lifted card state |
 
 ### Fixed accent colors for visualizations
 
-Use Tailwind palette colors directly for SVG/Canvas elements (these are semantic and don't change with dark mode):
+Use Tailwind palette colors directly for SVG/Canvas elements (semantic, not affected by brand palette):
 
-| Color     | Hex       | Use for                          |
-|-----------|-----------|----------------------------------|
-| Blue      | `#3b82f6` | Primary/default, PE energy       |
-| Green     | `#22c55e` | Positive values, success states  |
-| Red       | `#ef4444` | Applied force, negative values   |
-| Orange    | `#f59e0b` | Friction, KE energy, warnings   |
-| Purple    | `#a855f7` | Weight, lone pairs, secondary   |
-| Light green | `#4ade80` | Bonded atoms, positive work    |
+| Color | Hex | Use for |
+|---|---|---|
+| Blue | `#3b82f6` | Primary/default, PE energy |
+| Green | `#22c55e` | Positive values, success |
+| Red | `#ef4444` | Applied force, negative values |
+| Orange | `#f59e0b` | Friction, KE energy |
+| Purple | `#a855f7` | Weight, lone pairs |
+| Light green | `#4ade80` | Bonded atoms, positive work |
 
 ### Common UI patterns
 
 ```
-Cards:         bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl p-3
-Inputs:        border border-[var(--card-border)] rounded-lg px-2 py-1.5 text-sm
+Cards:         bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-4
+               style={{ boxShadow: "var(--shadow-sm)" }}
+Inputs:        border border-[var(--card-border)] rounded-xl px-2 py-1.5 text-sm
                bg-[var(--background)] outline-none focus:border-[var(--accent)]
-Primary btn:   bg-[var(--foreground)] text-[var(--background)] hover:opacity-85
-Secondary btn: border border-[var(--card-border)] hover:bg-[var(--card-bg)]
+Primary btn:   rounded-full px-5 py-2 bg-[var(--foreground)] text-[var(--background)] hover:opacity-85
+Secondary btn: rounded-full px-5 py-2 border border-[var(--card-border)] hover:bg-[var(--card-bg)]
+Icon chip:     rounded-full w-10 h-10 flex items-center justify-center
+               style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
 Muted text:    text-[var(--muted)]
 Small label:   text-xs text-[var(--muted)]
 Tiny label:    text-[10px] text-[var(--muted)]
-Hover scale:   hover:scale-[1.01] transition-all
+Hover lift:    onMouseEnter → boxShadow: var(--shadow-md), transform: translateY(-1px)
 Active press:  active:scale-[0.98]
 Page padding:  p-4 sm:p-8 max-w-4xl mx-auto
 Responsive:    grid grid-cols-1 sm:grid-cols-3 gap-3
 ```
+
+### Brand rules
+
+- **No emoji anywhere.** Use Lucide icons (1.5px stroke) for glyphs. Subject chips use `Calculator`, `Leaf`, `FlaskConical`, `Atom`.
+- **No pure white.** Cream-50 (`#FBF8F2`) is the lightest surface.
+- **Sentence case everywhere** — buttons, headings, labels, nav items.
+- **Pill buttons only.** Use `rounded-full`, not `rounded-lg`.
+- **Cards use `rounded-2xl`** (16px). No sharp corners ever.
+- **One italic flourish per headline max.** Set in Instrument Serif italic, colored `var(--accent-deep)`.
+- **Motion:** 260ms, `cubic-bezier(0.22, 1, 0.36, 1)`. No bounce, no scale > 1.02.
 
 ---
 
@@ -262,7 +297,7 @@ Responsive:    grid grid-cols-1 sm:grid-cols-3 gap-3
 ### SVG (preferred for static/interactive diagrams)
 
 - Use `viewBox` for responsive scaling: `<svg viewBox="0 0 600 300" className="w-full h-auto">`
-- Wrap in a card container: `bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl p-4`
+- Wrap in a card container: `bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-4`
 - For draggable/interactive SVG: add `touch-none cursor-grab active:cursor-grabbing` classes
 - Use `var(--foreground)` and `var(--muted)` for SVG strokes/text to respect dark mode
 
@@ -284,7 +319,7 @@ const lastTsRef = useRef<number | null>(null);
 const tick = useCallback((ts: number) => {
   if (!playingRef.current) return;
   if (lastTsRef.current === null) lastTsRef.current = ts;
-  const dt = Math.min((ts - lastTsRef.current) / 1000, 0.05); // cap delta
+  const dt = Math.min((ts - lastTsRef.current) / 1000, 0.05);
   lastTsRef.current = ts;
   // ... update physics ...
   animRef.current = requestAnimationFrame(tick);
@@ -293,7 +328,6 @@ const tick = useCallback((ts: number) => {
 const togglePlay = () => { /* flip playingRef, setPlaying, start/cancel RAF */ };
 const reset = () => { /* cancel RAF, reset all refs and state */ };
 
-// Reset when params change
 useEffect(() => { reset(); }, [param1, param2, reset]);
 ```
 
@@ -302,9 +336,12 @@ useEffect(() => { reset(); }, [param1, param2, reset]);
 ## Do NOT
 
 - Install external charting libraries (recharts, chart.js, d3, three.js, etc.)
+- Use emoji anywhere in UI — use Lucide icons instead
 - Use `<Image>` from next/image for SVG visualizations — use inline `<svg>` or `<canvas>`
 - Hardcode Thai-only strings in UI — always use `t(thai, english)`
-- Hardcode light-mode colors — always use CSS variables for background/text/borders
+- Hardcode colors — always use CSS variables for background/text/borders
+- Use pure white (`#ffffff`) — `var(--background)` is cream-50, the lightest surface
+- Use square/sharp corners for cards or buttons — always `rounded-2xl` or `rounded-full`
 - Create separate CSS/SCSS files — use Tailwind utility classes only
 - Add server components for interactive pages — all topic pages need `"use client"`
 - Forget to update **both** the subject landing page and the Sidebar when adding a topic
@@ -317,8 +354,9 @@ useEffect(() => { reset(); }, [param1, param2, reset]);
 - [ ] Starts with `"use client";`
 - [ ] Uses `useLang()` and `t()` for all user-facing text
 - [ ] Has breadcrumb navigation back to subject
-- [ ] Has a clear `<h1>` title with emoji
-- [ ] Controls use card containers with proper styling
+- [ ] Has a clear `<h1>` in sentence case — no emoji in headings
+- [ ] Controls use card containers with `rounded-2xl` and `var(--card-border)`
+- [ ] Buttons are `rounded-full` (pill shape)
 - [ ] Visualization uses SVG or Canvas (no external libraries)
 - [ ] All colors use CSS variables (dark-mode safe)
 - [ ] Responsive grid layout (`grid-cols-1 sm:grid-cols-N`)

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useLang } from "@/components/LangContext";
+import { Atom, ArrowUpRight } from "lucide-react";
 
 export default function PhysicsPage() {
   const { t } = useLang();
@@ -11,75 +12,115 @@ export default function PhysicsPage() {
       name: t("การเคลื่อนที่สัมพัทธ์", "Relative Motion"),
       description: t(
         "เรียนรู้แนวคิดการเคลื่อนที่สัมพัทธ์ผ่านมุมมอง Bird's eye และกระจกข้างรถ",
-        "Learn relative motion concepts through bird's eye view and side mirror perspectives"
+        "Learn relative motion concepts through bird's eye view and side mirror perspectives."
       ),
       href: "/physics/relative-motion",
-      icon: "🚗",
     },
     {
-      name: t("การเคลื่อนที่ 1 มิติ", "1D Motion Visualization"),
+      name: t("การเคลื่อนที่ 1 มิติ", "1D Motion"),
       description: t(
         "จำลองการเคลื่อนที่แนวตรงด้วยสมการ x(t) = x₀ + v₀t + ½at² พร้อมกราฟเรียลไทม์",
-        "Simulate linear motion with equation x(t) = x₀ + v₀t + ½at² with real-time graphs"
+        "Simulate linear motion with x(t) = x₀ + v₀t + ½at² and real-time graphs."
       ),
       href: "/physics/1d-motion",
-      icon: "📊",
     },
     {
       name: t("โพรเจกไทล์", "Projectile Motion"),
       description: t(
-        "จำลองการเคลื่อนที่แบบโพรเจกไทล์ ปรับมุม ความเร็ว ความสูง แรงโน้มถ่วง และแรงต้านอากาศ เปรียบเทียบวิถีได้",
-        "Simulate projectile motion with adjustable angle, velocity, height, gravity, and air drag. Compare trajectories."
+        "จำลองการเคลื่อนที่แบบโพรเจกไทล์ ปรับมุม ความเร็ว ความสูง แรงโน้มถ่วง และแรงต้านอากาศ",
+        "Simulate projectile motion — adjust angle, velocity, height, gravity, and air drag."
       ),
       href: "/physics/projectile",
-      icon: "🎯",
     },
     {
-      name: t("งาน (Work)", "Work"),
+      name: t("งาน", "Work"),
       description: t(
         "คำนวณงานจากแรงที่กระทำต่อวัตถุบนพื้นราบ ปรับมุม ระยะทาง และแรงเสียดทานได้",
-        "Calculate work done by a force on a box. Adjust angle, distance, and friction."
+        "Calculate work done by a force on a box — adjust angle, distance, and friction."
       ),
       href: "/physics/work",
-      icon: "🔧",
     },
     {
-      name: t("พลังงาน (Energy)", "Energy"),
+      name: t("พลังงาน", "Energy"),
       description: t(
         "สำรวจการอนุรักษ์พลังงานในการตกอิสระ ดูสมดุลระหว่างพลังงานศักย์และพลังงานจลน์",
-        "Explore energy conservation in free fall. See the balance between PE and KE."
+        "Explore energy conservation in free fall — PE and KE in real time."
       ),
       href: "/physics/energy",
-      icon: "⚡",
     },
     {
-      name: t("แรงเสียดทาน (กล่องซ้อน)", "Friction (Stacked Boxes)"),
+      name: t("แรงเสียดทาน (กล่องซ้อน)", "Friction — Stacked Boxes"),
       description: t(
-        "จำลองกล่องซ้อนกัน 2 ใบบนพื้น ตั้งค่าสัมประสิทธิ์แรงเสียดทานระหว่างผิวสัมผัส แสดง FBD และคำนวณความเร่งของแต่ละกล่อง",
-        "Simulate two stacked boxes on a surface. Set friction coefficients between each surface, view free body diagrams, and calculate each box's acceleration."
+        "จำลองกล่องซ้อนกัน 2 ใบบนพื้น ตั้งค่าสัมประสิทธิ์แรงเสียดทาน แสดง FBD และคำนวณความเร่ง",
+        "Two stacked boxes on a surface — set friction coefficients, view FBDs, calculate accelerations."
       ),
       href: "/physics/friction",
-      icon: "📦",
     },
   ];
 
   return (
     <div className="p-8 max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold mb-2">⚛️ {t("ฟิสิกส์", "Physics")}</h1>
-      <p className="text-[var(--muted)] mb-8">Physics</p>
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-2">
+        <div
+          className="inline-flex items-center justify-center rounded-full w-10 h-10"
+          style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+        >
+          <Atom size={20} strokeWidth={1.5} />
+        </div>
+        <h1
+          className="text-3xl"
+          style={{
+            fontFamily: "var(--font-instrument-serif), 'Instrument Serif', Georgia, serif",
+            fontStyle: "italic",
+            letterSpacing: "-0.02em",
+            color: "var(--foreground)",
+          }}
+        >
+          {t("ฟิสิกส์", "Physics")}
+        </h1>
+      </div>
+      <p className="text-sm mb-8" style={{ color: "var(--muted)" }}>
+        {t("เลือกหัวข้อที่ต้องการเรียนรู้", "Choose a topic to explore.")}
+      </p>
 
-      <div className="grid gap-4">
+      <div className="grid gap-3">
         {topics.map((tp) => (
           <Link
             key={tp.href}
             href={tp.href}
-            className="group flex items-start gap-4 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl p-5 hover:scale-[1.01] transition-all"
+            className="group flex items-start justify-between gap-4 rounded-2xl p-5 transition-all"
+            style={{
+              background: "var(--card-bg)",
+              border: "1px solid var(--card-border)",
+              boxShadow: "var(--shadow-sm)",
+              transitionDuration: "var(--duration)",
+              transitionTimingFunction: "var(--ease-out)",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLAnchorElement).style.boxShadow = "var(--shadow-md)";
+              (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLAnchorElement).style.boxShadow = "var(--shadow-sm)";
+              (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(0)";
+            }}
           >
-            <span className="text-3xl mt-1">{tp.icon}</span>
             <div>
-              <h2 className="text-lg font-semibold group-hover:text-[var(--accent)]">{tp.name}</h2>
-              <p className="text-sm text-[var(--muted)]">{tp.description}</p>
+              <h2
+                className="text-base font-semibold mb-1 group-hover:text-[var(--accent)] transition-colors"
+                style={{ color: "var(--foreground)" }}
+              >
+                {tp.name}
+              </h2>
+              <p className="text-sm" style={{ color: "var(--muted)" }}>{tp.description}</p>
             </div>
+            <span
+              className="mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ color: "var(--muted)" }}
+            >
+              <ArrowUpRight size={16} strokeWidth={1.5} />
+            </span>
           </Link>
         ))}
       </div>
