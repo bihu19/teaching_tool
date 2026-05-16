@@ -56,6 +56,14 @@ export default function PhysicsPage() {
       ),
       href: "/physics/friction",
     },
+    {
+      name: t("แสงและเลนส์", "Optics — Lenses"),
+      description: t(
+        "สำรวจการเกิดภาพของเลนส์นูนและเลนส์เว้า พร้อมรังสีทั้งสามเส้น เมื่อวางวัตถุที่ตำแหน่งต่างๆ",
+        "Explore image formation for convex and concave lenses — ray diagrams for all object positions."
+      ),
+      href: "/physics/optics",
+    },
   ];
 
   return (
