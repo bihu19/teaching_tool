@@ -60,7 +60,7 @@ export default function Sidebar() {
         { name: t("งาน", "Work"), href: "/physics/work" },
         { name: t("พลังงาน", "Energy"), href: "/physics/energy" },
         { name: t("แรงเสียดทาน (กล่องซ้อน)", "Friction (Stacked Boxes)"), href: "/physics/friction" },
-        { name: t("แสงและเลนส์", "Optics — Lenses"), href: "/physics/optics" },
+        { name: t("แสงและทัศนอุปกรณ์", "Optics"), href: "/physics/optics" },
       ],
     },
   ];
