@@ -61,6 +61,7 @@ export default function Sidebar() {
         { name: t("พลังงาน", "Energy"), href: "/physics/energy" },
         { name: t("แรงเสียดทาน (กล่องซ้อน)", "Friction (Stacked Boxes)"), href: "/physics/friction" },
         { name: t("แสงและทัศนอุปกรณ์", "Optics"), href: "/physics/optics" },
+        { name: t("แรงลอยตัว", "Buoyancy"), href: "/physics/buoyancy" },
       ],
     },
   ];
