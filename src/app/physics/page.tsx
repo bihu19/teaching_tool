@@ -64,6 +64,14 @@ export default function PhysicsPage() {
       ),
       href: "/physics/optics",
     },
+    {
+      name: t("แรงลอยตัว", "Buoyancy Force"),
+      description: t(
+        "เรียนรู้หลักการของอาร์คิมีดิส ปรับความหนาแน่นของวัตถุและของเหลว แล้วดูว่าวัตถุลอยหรือจม",
+        "Explore Archimedes' principle — adjust object and fluid density to see floating vs sinking."
+      ),
+      href: "/physics/buoyancy",
+    },
   ];
 
   return (
