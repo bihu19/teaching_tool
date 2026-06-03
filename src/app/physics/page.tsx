@@ -72,6 +72,14 @@ export default function PhysicsPage() {
       ),
       href: "/physics/buoyancy",
     },
+    {
+      name: t("การหักเหและการสะท้อนกลับหมด", "Refraction & Total Internal Reflection"),
+      description: t(
+        "สำรวจกฎของสเนลล์ ปรับมุมแสงจากปลาใต้น้ำ แล้วดูมุมวิกฤตของการสะท้อนกลับหมด",
+        "Explore Snell's law — adjust the underwater light ray angle to find the critical angle for total internal reflection."
+      ),
+      href: "/physics/refraction",
+    },
   ];
 
   return (
