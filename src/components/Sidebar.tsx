@@ -63,6 +63,7 @@ export default function Sidebar() {
         { name: t("แสงและทัศนอุปกรณ์", "Optics"), href: "/physics/optics" },
         { name: t("แรงลอยตัว", "Buoyancy"), href: "/physics/buoyancy" },
         { name: t("การหักเหของแสง", "Refraction & TIR"), href: "/physics/refraction" },
+        { name: t("การเหนี่ยวนำประจุ", "Electrostatic Induction"), href: "/physics/induction" },
       ],
     },
   ];

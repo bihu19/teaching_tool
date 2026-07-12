@@ -80,6 +80,14 @@ export default function PhysicsPage() {
       ),
       href: "/physics/refraction",
     },
+    {
+      name: t("การเหนี่ยวนำประจุ", "Electrostatic Induction"),
+      description: t(
+        "จำลองการเหนี่ยวนำประจุทีละขั้น นำแท่งประจุเข้าใกล้ ต่อสายดิน แล้วดูว่าตัวนำเหลือประจุสุทธิอย่างไร",
+        "Step through electrostatic induction: bring a charged rod near, ground the conductor, and see what net charge remains."
+      ),
+      href: "/physics/induction",
+    },
   ];
 
   return (
