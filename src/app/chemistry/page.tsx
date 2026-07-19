@@ -24,6 +24,14 @@ export default function ChemistryPage() {
       ),
       href: "/chemistry/periodic-table",
     },
+    {
+      name: t("อันดับของอัตราการเกิดปฏิกิริยา", "Reaction Rate Order"),
+      description: t(
+        "เลือกอันดับปฏิกิริยา (0, 1, 2, 3) แล้วดูกราฟความเข้มข้นกับเวลา พร้อมสมการอัตรา สมการเชิงปริพันธ์ และครึ่งชีวิต",
+        "Choose a reaction order (0, 1, 2, 3) and explore the concentration–time graph, with rate laws, integrated equations, and half-lives."
+      ),
+      href: "/chemistry/reaction-order",
+    },
   ];
 
   return (
