@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useLang } from "@/components/LangContext";
 
@@ -101,6 +101,11 @@ function conc(n: number, A0: number, k: number, t: number): number {
   }
 }
 
+/** Reaction rate = k[A]^n at concentration c. */
+function rateOf(n: number, k: number, c: number): number {
+  return k * Math.pow(c, n);
+}
+
 /** Linearising transform for the given order (straight line vs t). */
 function linTransform(n: number, c: number): number {
   switch (n) {
@@ -150,14 +155,77 @@ export default function ReactionOrderPage() {
   const [compare, setCompare] = useState(false);
   const [linear, setLinear] = useState(false);
 
+  /* --- animation (playhead sweeping the reaction over time) --- */
+  const [playing, setPlaying] = useState(false);
+  const [tNow, setTNow] = useState(0);
+  const playingRef = useRef(false);
+  const tNowRef = useRef(0);
+  const tMaxRef = useRef(tMax);
+  const animRef = useRef(0);
+  const lastTsRef = useRef<number | null>(null);
+  tMaxRef.current = tMax;
+
+  const tick = useCallback((ts: number) => {
+    if (!playingRef.current) return;
+    if (lastTsRef.current === null) lastTsRef.current = ts;
+    const dt = Math.min((ts - lastTsRef.current) / 1000, 0.05);
+    lastTsRef.current = ts;
+    const speed = tMaxRef.current / 5; // full sweep takes ~5 s regardless of window
+    let nt = tNowRef.current + dt * speed;
+    if (nt >= tMaxRef.current) {
+      nt = tMaxRef.current;
+      tNowRef.current = nt;
+      setTNow(nt);
+      playingRef.current = false;
+      setPlaying(false);
+      return;
+    }
+    tNowRef.current = nt;
+    setTNow(nt);
+    animRef.current = requestAnimationFrame(tick);
+  }, []);
+
+  const togglePlay = () => {
+    if (playingRef.current) {
+      playingRef.current = false;
+      setPlaying(false);
+      cancelAnimationFrame(animRef.current);
+      lastTsRef.current = null;
+      return;
+    }
+    if (tNowRef.current >= tMaxRef.current) {
+      tNowRef.current = 0;
+      setTNow(0);
+    }
+    playingRef.current = true;
+    setPlaying(true);
+    lastTsRef.current = null;
+    animRef.current = requestAnimationFrame(tick);
+  };
+
+  const resetAnim = useCallback(() => {
+    playingRef.current = false;
+    setPlaying(false);
+    cancelAnimationFrame(animRef.current);
+    lastTsRef.current = null;
+    tNowRef.current = 0;
+    setTNow(0);
+  }, []);
+
+  // Re-home the playhead whenever the physics parameters change
+  useEffect(() => {
+    resetAnim();
+  }, [order, A0, k, tMax, resetAnim]);
+
+  // Cleanup on unmount
+  useEffect(() => () => cancelAnimationFrame(animRef.current), []);
+
   const sel = ORDERS[order];
 
-  const { curves, xTicks, yTicks, yLabel } = useMemo(() => {
-    // Which orders get drawn as curves
-    const shown =
-      linear || !compare ? [ORDERS[order]] : ORDERS;
+  /* --- concentration–time curves --- */
+  const { curves, xTicks, yTicks, yLabel, yMin, yMax } = useMemo(() => {
+    const shown = linear || !compare ? [ORDERS[order]] : ORDERS;
 
-    // Sample raw data points for every shown order
     const raw = shown.map((o) => {
       const pts: { t: number; y: number }[] = [];
       for (let i = 0; i <= N; i++) {
@@ -169,7 +237,6 @@ export default function ReactionOrderPage() {
       return { o, pts };
     });
 
-    // y-axis range
     let yMin: number;
     let yMax: number;
     if (linear) {
@@ -179,7 +246,6 @@ export default function ReactionOrderPage() {
       yMin = Math.min(...vals);
       yMax = Math.max(...vals);
       if (yMin === yMax) yMax = yMin + 1;
-      // small padding
       const pad = (yMax - yMin) * 0.06;
       yMin -= pad;
       yMax += pad;
@@ -199,7 +265,6 @@ export default function ReactionOrderPage() {
       return { color: r.o.color, n: r.o.n, d };
     });
 
-    // ticks
     const xTicks = Array.from({ length: 6 }, (_, i) => {
       const time = (i / 5) * tMax;
       return { x: xOf(time), label: time.toFixed(time < 1 && time > 0 ? 1 : 0) };
@@ -209,16 +274,51 @@ export default function ReactionOrderPage() {
       return { y: yOf(v), label: v.toFixed(Math.abs(v) < 10 ? 2 : 1) };
     });
 
-    const yLabel = linear
-      ? sel.linAxis
-      : t("[A] (mol·L⁻¹)", "[A] (mol·L⁻¹)");
+    const yLabel = linear ? sel.linAxis : t("[A] (mol·L⁻¹)", "[A] (mol·L⁻¹)");
 
-    return { curves, xTicks, yTicks, yLabel };
+    return { curves, xTicks, yTicks, yLabel, yMin, yMax };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order, A0, k, tMax, compare, linear, t]);
 
+  /* --- rate vs [A] curve --- */
+  const rateGraph = useMemo(() => {
+    const pts: { c: number; r: number }[] = [];
+    for (let i = 0; i <= N; i++) {
+      const c = (i / N) * A0;
+      pts.push({ c, r: rateOf(order, k, c) });
+    }
+    const rMax = Math.max(rateOf(order, k, A0), 1e-9) * 1.05;
+
+    const xOf = (c: number) => M.l + (A0 === 0 ? 0 : c / A0) * PW;
+    const yOf = (r: number) => M.t + (1 - r / rMax) * PH;
+
+    const d = pts
+      .map((p, i) => `${i === 0 ? "M" : "L"} ${xOf(p.c).toFixed(1)} ${yOf(p.r).toFixed(1)}`)
+      .join(" ");
+
+    const xTicks = Array.from({ length: 6 }, (_, i) => {
+      const c = (i / 5) * A0;
+      return { x: xOf(c), label: c.toFixed(A0 < 1 ? 2 : 1) };
+    });
+    const yTicks = Array.from({ length: 5 }, (_, i) => {
+      const r = (i / 4) * rMax;
+      return { y: yOf(r), label: r.toFixed(Math.abs(r) < 1 ? 3 : 2) };
+    });
+
+    return { d, xTicks, yTicks, xOf, yOf, rMax };
+  }, [order, A0, k]);
+
   const rate0 = k * Math.pow(A0, order); // initial rate
   const th = halfLife(order, A0, k);
+
+  /* --- live playhead values --- */
+  const cNow = conc(order, A0, k, tNow);
+  const rNow = rateOf(order, k, cNow);
+  const markerX = M.l + (tNow / tMax) * PW;
+  const markerY =
+    M.t + (1 - ((linear ? linTransform(order, cNow) : cNow) - yMin) / (yMax - yMin)) * PH;
+  const rMarkerX = rateGraph.xOf(cNow);
+  const rMarkerY = rateGraph.yOf(rNow);
 
   return (
     <div className="p-4 sm:p-8 max-w-4xl mx-auto">
@@ -361,51 +461,75 @@ export default function ReactionOrderPage() {
         )}
       </div>
 
-      {/* Graph */}
+      {/* Animation controls */}
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <button
+          onClick={togglePlay}
+          className="px-5 py-2 rounded-full text-sm font-medium transition-all active:scale-[0.98]"
+          style={{ background: "var(--foreground)", color: "var(--background)" }}
+        >
+          {playing ? t("❚❚ หยุดชั่วคราว", "❚❚ Pause") : t("▶ เล่นปฏิกิริยา", "▶ Play reaction")}
+        </button>
+        <button
+          onClick={resetAnim}
+          className="px-5 py-2 rounded-full text-sm border border-[var(--card-border)] hover:bg-[var(--card-bg)] active:scale-[0.98] transition-all"
+        >
+          {t("↺ รีเซ็ต", "↺ Reset")}
+        </button>
+        <span className="text-xs ml-1" style={{ color: "var(--muted)" }}>
+          {t("แถบแนวตั้งแสดงเวลาปัจจุบันบนกราฟทั้งสอง", "The playhead marks the current time on both graphs.")}
+        </span>
+      </div>
+
+      {/* Live readouts (playhead) */}
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-3">
+          <div className="text-[10px] text-[var(--muted)] mb-0.5">{t("เวลา t", "Time t")}</div>
+          <div className="text-lg font-medium">{tNow.toFixed(2)}</div>
+          <div className="text-[10px] text-[var(--muted)]">s</div>
+        </div>
+        <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-3">
+          <div className="text-[10px] text-[var(--muted)] mb-0.5">{t("ความเข้มข้น [A]", "Concentration [A]")}</div>
+          <div className="text-lg font-medium" style={{ color: sel.color }}>{cNow.toFixed(3)}</div>
+          <div className="text-[10px] text-[var(--muted)]">M</div>
+        </div>
+        <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-3">
+          <div className="text-[10px] text-[var(--muted)] mb-0.5">{t("อัตราขณะนั้น", "Current rate")}</div>
+          <div className="text-lg font-medium">{rNow.toFixed(3)}</div>
+          <div className="text-[10px] text-[var(--muted)]">M·s⁻¹</div>
+        </div>
+      </div>
+
+      {/* Graph 1 — concentration/linearised vs time */}
       <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-4 mb-4">
+        <div className="text-xs font-medium mb-1" style={{ color: "var(--muted)" }}>
+          {linear ? t("กราฟเส้นตรง", "Linearised plot") : t("ความเข้มข้นกับเวลา", "Concentration vs time")}
+        </div>
         <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto">
-          {/* y gridlines + labels */}
           {yTicks.map((tick, i) => (
             <g key={`y${i}`}>
-              <line
-                x1={M.l} y1={tick.y} x2={W - M.r} y2={tick.y}
-                stroke="var(--card-border)" strokeWidth={1}
-              />
-              <text
-                x={M.l - 8} y={tick.y + 3} textAnchor="end"
-                fontSize={11} fill="var(--muted)"
-              >
+              <line x1={M.l} y1={tick.y} x2={W - M.r} y2={tick.y} stroke="var(--card-border)" strokeWidth={1} />
+              <text x={M.l - 8} y={tick.y + 3} textAnchor="end" fontSize={11} fill="var(--muted)">
                 {tick.label}
               </text>
             </g>
           ))}
-          {/* x labels */}
           {xTicks.map((tick, i) => (
-            <text
-              key={`x${i}`} x={tick.x} y={H - M.b + 18} textAnchor="middle"
-              fontSize={11} fill="var(--muted)"
-            >
+            <text key={`x${i}`} x={tick.x} y={H - M.b + 18} textAnchor="middle" fontSize={11} fill="var(--muted)">
               {tick.label}
             </text>
           ))}
-          {/* axes */}
           <line x1={M.l} y1={M.t} x2={M.l} y2={H - M.b} stroke="var(--foreground)" strokeWidth={1.5} />
           <line x1={M.l} y1={H - M.b} x2={W - M.r} y2={H - M.b} stroke="var(--foreground)" strokeWidth={1.5} />
-          {/* axis titles */}
-          <text
-            x={M.l + PW / 2} y={H - 4} textAnchor="middle"
-            fontSize={12} fill="var(--muted)"
-          >
+          <text x={M.l + PW / 2} y={H - 4} textAnchor="middle" fontSize={12} fill="var(--muted)">
             {t("เวลา t (s)", "Time t (s)")}
           </text>
           <text
-            x={14} y={M.t + PH / 2} textAnchor="middle"
-            fontSize={12} fill="var(--muted)"
+            x={14} y={M.t + PH / 2} textAnchor="middle" fontSize={12} fill="var(--muted)"
             transform={`rotate(-90 14 ${M.t + PH / 2})`}
           >
             {yLabel}
           </text>
-          {/* curves */}
           {curves.map((c) => (
             <path
               key={c.n}
@@ -418,6 +542,66 @@ export default function ReactionOrderPage() {
               opacity={compare && !linear && c.n !== order ? 0.55 : 1}
             />
           ))}
+          {/* playhead */}
+          {tNow > 0 && (
+            <>
+              <line
+                x1={markerX} y1={M.t} x2={markerX} y2={H - M.b}
+                stroke={sel.color} strokeWidth={1} strokeDasharray="4 3" opacity={0.7}
+              />
+              <circle cx={markerX} cy={markerY} r={5} fill={sel.color} stroke="var(--card-bg)" strokeWidth={2} />
+            </>
+          )}
+        </svg>
+      </div>
+
+      {/* Graph 2 — rate vs [A] */}
+      <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-4 mb-4">
+        <div className="text-xs font-medium mb-1" style={{ color: "var(--muted)" }}>
+          {t("อัตรากับความเข้มข้น (rate = k[A]ⁿ)", "Rate vs concentration (rate = k[A]ⁿ)")}
+        </div>
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto">
+          {rateGraph.yTicks.map((tick, i) => (
+            <g key={`ry${i}`}>
+              <line x1={M.l} y1={tick.y} x2={W - M.r} y2={tick.y} stroke="var(--card-border)" strokeWidth={1} />
+              <text x={M.l - 8} y={tick.y + 3} textAnchor="end" fontSize={11} fill="var(--muted)">
+                {tick.label}
+              </text>
+            </g>
+          ))}
+          {rateGraph.xTicks.map((tick, i) => (
+            <text key={`rx${i}`} x={tick.x} y={H - M.b + 18} textAnchor="middle" fontSize={11} fill="var(--muted)">
+              {tick.label}
+            </text>
+          ))}
+          <line x1={M.l} y1={M.t} x2={M.l} y2={H - M.b} stroke="var(--foreground)" strokeWidth={1.5} />
+          <line x1={M.l} y1={H - M.b} x2={W - M.r} y2={H - M.b} stroke="var(--foreground)" strokeWidth={1.5} />
+          <text x={M.l + PW / 2} y={H - 4} textAnchor="middle" fontSize={12} fill="var(--muted)">
+            {t("ความเข้มข้น [A] (M)", "Concentration [A] (M)")}
+          </text>
+          <text
+            x={14} y={M.t + PH / 2} textAnchor="middle" fontSize={12} fill="var(--muted)"
+            transform={`rotate(-90 14 ${M.t + PH / 2})`}
+          >
+            {t("อัตรา (M·s⁻¹)", "rate (M·s⁻¹)")}
+          </text>
+          <path
+            d={rateGraph.d}
+            fill="none"
+            stroke={sel.color}
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          {tNow > 0 && (
+            <>
+              <line
+                x1={rMarkerX} y1={M.t} x2={rMarkerX} y2={H - M.b}
+                stroke={sel.color} strokeWidth={1} strokeDasharray="4 3" opacity={0.7}
+              />
+              <circle cx={rMarkerX} cy={rMarkerY} r={5} fill={sel.color} stroke="var(--card-bg)" strokeWidth={2} />
+            </>
+          )}
         </svg>
       </div>
 
@@ -445,7 +629,7 @@ export default function ReactionOrderPage() {
         </div>
       </div>
 
-      {/* Note about linearised plot */}
+      {/* Note */}
       <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-4 mb-4 text-sm" style={{ color: "var(--muted)" }}>
         {linear
           ? t(
@@ -453,8 +637,8 @@ export default function ReactionOrderPage() {
               `Plotting ${sel.linForm} always gives a straight line. This is how reaction order is found from experimental data — try each order and see which one plots straight.`
             )
           : t(
-              "ความชันของเส้นสัมพันธ์กับค่า k และอันดับ n สังเกตว่าอันดับต่างกันให้รูปทรงเส้นโค้งต่างกัน กดปุ่ม “กราฟเส้นตรง” เพื่อดูวิธีหาอันดับ",
-              "The steepness of each curve depends on k and the order n. Notice how different orders give differently-shaped curves — tap “Linearised plot” to see how the order is identified."
+              "กด “เล่นปฏิกิริยา” เพื่อดู [A] ลดลงตามเวลา และสังเกตว่าอัตราเปลี่ยนไปตามความเข้มข้นบนกราฟที่สอง (rate = k[A]ⁿ)",
+              "Tap “Play reaction” to watch [A] fall over time, and notice how the rate changes with concentration on the second graph (rate = k[A]ⁿ)."
             )}
       </div>
 
