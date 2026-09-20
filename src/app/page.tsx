@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useLang } from "@/components/LangContext";
-import { Calculator, Leaf, FlaskConical, Atom, ArrowUpRight } from "lucide-react";
+import { Calculator, Leaf, FlaskConical, Atom, ArrowUpRight, Trophy } from "lucide-react";
 
 const subjects = [
   {
@@ -159,6 +159,103 @@ export default function Home() {
             );
           })}
         </div>
+
+        {/* IJSO — special section */}
+        <Link
+          href="/ijso"
+          className="group relative block rounded-2xl p-6 mt-4 overflow-hidden transition-all"
+          style={{
+            background:
+              "linear-gradient(135deg, var(--accent-soft) 0%, var(--card-bg) 60%)",
+            border: "1px solid var(--card-border)",
+            boxShadow: "var(--shadow-sm)",
+            transitionDuration: "var(--duration)",
+            transitionTimingFunction: "var(--ease-out)",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLAnchorElement).style.boxShadow = "var(--shadow-md)";
+            (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLAnchorElement).style.boxShadow = "var(--shadow-sm)";
+            (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(0)";
+          }}
+        >
+          <div className="flex items-start gap-4">
+            {/* Icon chip */}
+            <div
+              className="inline-flex items-center justify-center rounded-full w-11 h-11 shrink-0"
+              style={{ background: "var(--background)", color: "var(--accent)" }}
+            >
+              <Trophy size={24} strokeWidth={1.5} />
+            </div>
+
+            <div className="flex-1">
+              <span
+                className="inline-block rounded-full px-3 py-1 text-[11px] font-medium mb-2"
+                style={{ background: "var(--background)", color: "var(--accent)" }}
+              >
+                {t("สนามสอบพิเศษ", "Special track")}
+              </span>
+
+              <h2
+                className="text-xl mb-1"
+                style={{
+                  fontFamily:
+                    "var(--font-instrument-serif), 'Instrument Serif', Georgia, serif",
+                  letterSpacing: "-0.02em",
+                  color: "var(--foreground)",
+                }}
+              >
+                {lang === "th" ? (
+                  <>
+                    เตรียมสอบ{" "}
+                    <em style={{ color: "var(--accent-deep)", fontStyle: "italic" }}>IJSO</em>
+                  </>
+                ) : (
+                  <>
+                    prepare for{" "}
+                    <em style={{ color: "var(--accent-deep)", fontStyle: "italic" }}>IJSO</em>
+                  </>
+                )}
+              </h2>
+
+              <p className="text-sm mb-3" style={{ color: "var(--muted)" }}>
+                {t(
+                  "เส้นทางคัดเลือกผู้แทนประเทศไทยไปแข่งวิทยาศาสตร์โอลิมปิกระดับมัธยมต้น ไทม์ไลน์แต่ละรอบ และขอบเขตเนื้อหาทุกวิชา",
+                  "Thailand's selection pathway for the junior science olympiad: the timeline for each round and the full content scope, subject by subject."
+                )}
+              </p>
+
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  t("รอบ 1 · 4 วิชา", "Round 1 · 4 subjects"),
+                  t("รอบ 2 · 3 วิชา", "Round 2 · 3 subjects"),
+                  t("ข้อสอบเก่า", "Past papers"),
+                ].map((chip) => (
+                  <span
+                    key={chip}
+                    className="rounded-full px-2.5 py-1 text-[11px] font-mono"
+                    style={{
+                      background: "var(--background)",
+                      color: "var(--muted)",
+                      border: "1px solid var(--card-border)",
+                    }}
+                  >
+                    {chip}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <span
+            className="absolute top-5 right-5 opacity-0 group-hover:opacity-100 transition-opacity"
+            style={{ color: "var(--muted)" }}
+          >
+            <ArrowUpRight size={16} strokeWidth={1.5} />
+          </span>
+        </Link>
       </div>
     </div>
   );
