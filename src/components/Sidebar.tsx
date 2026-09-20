@@ -9,6 +9,7 @@ import {
   Leaf,
   FlaskConical,
   Atom,
+  Trophy,
   ChevronDown,
   ChevronRight,
   Menu,
@@ -21,6 +22,7 @@ const subjectIcons: Record<string, React.ReactNode> = {
   "/biology":   <Leaf        size={18} strokeWidth={1.5} />,
   "/chemistry": <FlaskConical size={18} strokeWidth={1.5} />,
   "/physics":   <Atom        size={18} strokeWidth={1.5} />,
+  "/ijso":      <Trophy      size={18} strokeWidth={1.5} />,
 };
 
 export default function Sidebar() {
@@ -65,6 +67,14 @@ export default function Sidebar() {
         { name: t("แรงลอยตัว", "Buoyancy"), href: "/physics/buoyancy" },
         { name: t("การหักเหของแสง", "Refraction & TIR"), href: "/physics/refraction" },
         { name: t("การเหนี่ยวนำประจุ", "Electrostatic Induction"), href: "/physics/induction" },
+      ],
+    },
+    {
+      name: t("IJSO", "IJSO"),
+      href: "/ijso",
+      topics: [
+        { name: t("รอบคัดเลือกที่ 1", "Selection round 1"), href: "/ijso/round-1" },
+        { name: t("รอบคัดเลือกที่ 2", "Selection round 2"), href: "/ijso/round-2" },
       ],
     },
   ];
