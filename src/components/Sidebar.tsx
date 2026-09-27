@@ -76,6 +76,7 @@ export default function Sidebar() {
         { name: t("รอบคัดเลือกที่ 1", "Selection round 1"), href: "/ijso/round-1" },
         { name: t("รอบคัดเลือกที่ 2", "Selection round 2"), href: "/ijso/round-2" },
         { name: t("ฟิสิกส์: กลศาสตร์", "Physics: mechanics"), href: "/ijso/mechanics" },
+        { name: t("เคมี: เคมีคำนวณ", "Chemistry: calculations"), href: "/ijso/chemical-calculations" },
       ],
     },
   ];

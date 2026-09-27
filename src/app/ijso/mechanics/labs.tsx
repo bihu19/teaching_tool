@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useLang } from "@/components/LangContext";
-import { Arrow, fmt, PillButton, Plot, Readout, Slider, Small, usePlayback } from "./ui";
+import { Arrow, fmt, PillButton, Plot, Readout, Slider, Small, usePlayback } from "../deck/ui";
 
 const G = 9.8;
 
