@@ -104,6 +104,31 @@ export default function IjsoPage() {
     },
   ];
 
+  const lessons = [
+    {
+      href: "/ijso/mechanics",
+      subject: t("ฟิสิกส์", "Physics"),
+      softVar: "--accent-soft",
+      chipText: "var(--accent)",
+      title: t("สไลด์กลศาสตร์: การเคลื่อนที่และแรง", "Mechanics slides: motion and force"),
+      desc: t(
+        "16 สไลด์ พร้อมห้องทดลอง 5 ชุด ครอบคลุมการเคลื่อนที่แนวตรง กฎนิวตัน สมดุลและโมเมนต์ และโพรเจกไทล์",
+        "16 slides with 5 hands-on labs covering straight-line motion, Newton's laws, equilibrium and torque, and projectiles."
+      ),
+    },
+    {
+      href: "/ijso/chemical-calculations",
+      subject: t("เคมี", "Chemistry"),
+      softVar: "--lilac-soft",
+      chipText: "#6D28D9",
+      title: t("สไลด์เคมีคำนวณ: ให้หน่วยนำทาง", "Chemical calculations slides: let the units lead"),
+      desc: t(
+        "15 สไลด์ พร้อมห้องทดลอง 3 ชุด ครอบคลุมโมล มวลโมลาร์ การตัดหน่วย ความเข้มข้น และสารกำหนดปริมาณ",
+        "15 slides with 3 hands-on labs covering moles, molar mass, unit cancellation, concentration and the limiting reactant."
+      ),
+    },
+  ];
+
   return (
     <div className="p-4 sm:p-8 max-w-3xl mx-auto">
       {/* Header */}
@@ -304,49 +329,51 @@ export default function IjsoPage() {
       <h2 className="text-sm font-semibold mb-3 uppercase tracking-wide" style={{ color: "var(--muted)" }}>
         {t("บทเรียนแบบโต้ตอบ", "Interactive lessons")}
       </h2>
-      <Link
-        href="/ijso/mechanics"
-        className="group flex items-start justify-between gap-4 rounded-2xl p-5 mb-10 transition-all"
-        style={{
-          background: "var(--card-bg)",
-          border: "1px solid var(--card-border)",
-          boxShadow: "var(--shadow-sm)",
-          transitionDuration: "var(--duration)",
-          transitionTimingFunction: "var(--ease-out)",
-        }}
-        onMouseEnter={(e) => {
-          (e.currentTarget as HTMLAnchorElement).style.boxShadow = "var(--shadow-md)";
-          (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)";
-        }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLAnchorElement).style.boxShadow = "var(--shadow-sm)";
-          (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(0)";
-        }}
-      >
-        <div>
-          <span
-            className="inline-block rounded-full px-3 py-1 text-[11px] font-medium mb-3"
-            style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-10">
+        {lessons.map((l) => (
+          <Link
+            key={l.href}
+            href={l.href}
+            className="group flex flex-col rounded-2xl p-5 transition-all"
+            style={{
+              background: "var(--card-bg)",
+              border: "1px solid var(--card-border)",
+              boxShadow: "var(--shadow-sm)",
+              transitionDuration: "var(--duration)",
+              transitionTimingFunction: "var(--ease-out)",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLAnchorElement).style.boxShadow = "var(--shadow-md)";
+              (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLAnchorElement).style.boxShadow = "var(--shadow-sm)";
+              (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(0)";
+            }}
           >
-            {t("ฟิสิกส์", "Physics")}
-          </span>
-          <h3
-            className="text-base font-semibold mb-1 group-hover:text-[var(--accent)] transition-colors"
-            style={{ color: "var(--foreground)" }}
-          >
-            {t("สไลด์กลศาสตร์: การเคลื่อนที่และแรง", "Mechanics slides: motion and force")}
-          </h3>
-          <p className="text-sm" style={{ color: "var(--muted)" }}>
-            {t(
-              "16 สไลด์ พร้อมห้องทดลอง 5 ชุด ครอบคลุมการเคลื่อนที่แนวตรง กฎนิวตัน สมดุลและโมเมนต์ และโพรเจกไทล์",
-              "16 slides with 5 hands-on labs covering straight-line motion, Newton's laws, equilibrium and torque, and projectiles."
-            )}
-          </p>
-        </div>
-        <span className="shrink-0 mt-0.5" style={{ color: "var(--muted)" }}>
-          <ArrowUpRight size={16} strokeWidth={1.5} />
-        </span>
-      </Link>
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <span
+                className="inline-block rounded-full px-3 py-1 text-[11px] font-medium"
+                style={{ background: `var(${l.softVar})`, color: l.chipText }}
+              >
+                {l.subject}
+              </span>
+              <span className="shrink-0" style={{ color: "var(--muted)" }}>
+                <ArrowUpRight size={16} strokeWidth={1.5} />
+              </span>
+            </div>
+            <h3
+              className="text-base font-semibold mb-1 group-hover:text-[var(--accent)] transition-colors"
+              style={{ color: "var(--foreground)" }}
+            >
+              {l.title}
+            </h3>
+            <p className="text-sm" style={{ color: "var(--muted)" }}>
+              {l.desc}
+            </p>
+          </Link>
+        ))}
+      </div>
 
       {/* Past papers */}
       <h2 className="text-sm font-semibold mb-3 uppercase tracking-wide" style={{ color: "var(--muted)" }}>
