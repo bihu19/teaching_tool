@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Instrument_Serif, Manrope, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
@@ -41,6 +42,21 @@ export default function RootLayout({
       lang="th"
       className={`h-full antialiased ${manrope.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`}
     >
+      <head>
+        {/* Google tag (gtag.js) */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-4NSPGECZKC"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-4NSPGECZKC');
+          `}
+        </Script>
+      </head>
       <body className="min-h-full flex bg-[var(--background)] text-[var(--foreground)]">
         <LangProvider>
           <Sidebar />
